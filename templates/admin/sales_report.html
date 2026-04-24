@@ -1,0 +1,71 @@
+{% extends 'admin/adminbase.html' %}
+{% block title %}Sales Report - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold text-info mb-0">
+        <i class="fas fa-chart-line"></i> Sales Report – {{ event.title }}
+      </h4>
+
+      <a href="{% url 'download_sales_report' event.id %}"
+         class="btn btn-info btn-sm text-black fw-bold shadow-sm">
+        <i class="fas fa-download"></i> Download PDF
+      </a>
+    </div>
+
+    <hr class="border-secondary">
+
+    <!-- Summary -->
+    <h5 class="text-info fw-bold">Summary</h5>
+
+    <ul class="text-light mb-4">
+      <li><strong class="text-info">Total Minted:</strong> {{ total_minted }}</li>
+      <li><strong class="text-info">Total Sold:</strong> {{ total_sold }}</li>
+      <li><strong class="text-info">Unsold:</strong> {{ total_unsold }}</li>
+      <li><strong class="text-info">Total ETH Earned:</strong> {{ total_eth_earned }} ETH</li>
+    </ul>
+
+    <hr class="border-secondary">
+
+    <!-- Buyers -->
+    <h5 class="text-info fw-bold">Buyers</h5>
+
+    <table class="table table-dark table-hover align-middle rounded overflow-hidden mt-3">
+
+      <thead class="bg-dark border-bottom border-secondary">
+        <tr class="text-info">
+          <th>User</th>
+          <th>Quantity</th>
+          <th>Total ETH</th>
+          <th>Transaction</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for p in purchases %}
+        <tr>
+          <td class="text-light">{{ p.user.username }}</td>
+          <td class="text-light">{{ p.quantity }}</td>
+          <td class="text-light">{{ p.total_eth }}</td>
+          <td class="text-secondary">{{ p.tx_hash|truncatechars:15 }}</td>
+          <td class="text-light">{{ p.created_at }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center text-secondary">No ticket purchases.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>
+{% endblock %}

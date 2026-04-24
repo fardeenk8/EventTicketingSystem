@@ -1,0 +1,394 @@
+{% extends 'user/userbase.html' %}
+{% block title %}Marketplace{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg p-4">
+
+    <h4 class="fw-bold text-info mb-3">
+      <i class="fas fa-store"></i> Ticket Marketplace
+    </h4>
+
+    <hr class="border-secondary">
+
+    {% if listings %}
+    <div class="row">
+
+      {% for item in listings %}
+      {% with t=item.ticket %}
+      <div class="col-md-4 mb-4">
+
+        <div class="dark-card shadow-sm p-0">
+
+          <!-- Poster -->
+          <img src="{{ t.event.poster.url }}" class="card-img-top rounded-top"
+               style="height:180px; object-fit:cover;">
+
+          <div class="p-3">
+
+            <h5 class="fw-bold text-white">{{ t.event.title }}</h5>
+
+            <p class="text-secondary small">{{ t.event.date }} • {{ t.event.time }}</p>
+
+            <p class="text-info small">
+              <strong>Token ID:</strong> {{ t.token_id }}
+            </p>
+
+            <p class="text-warning fw-bold mb-1">
+              Price: {{ item.price_eth }} ETH
+            </p>
+
+            <p class="text-secondary small">
+              Seller: {{ item.seller.username }}
+            </p>
+
+            <button class="btn btn-success w-100 mt-2"
+              onclick="buyResale('{{ item.id }}', '{{ item.price_eth }}', '{{ item.seller.profile.wallet }}')">
+              <i class="fas fa-shopping-cart"></i> Buy Ticket
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+      {% endwith %}
+      {% endfor %}
+
+    </div>
+
+    {% else %}
+      <p class="text-center text-secondary">No tickets available for resale now.</p>
+    {% endif %}
+
+  </div>
+
+</div>
+
+<div class="container mt-4">
+  <div class="dark-card shadow-lg p-4">
+    <h4 class="fw-bold text-info mb-3">
+      <i class="fas fa-gavel"></i> Live Ticket Auctions
+    </h4>
+    <hr class="border-secondary">
+
+    <div id="auctionGrid" class="row"></div>
+    <p id="auctionEmpty" class="text-center text-secondary d-none mb-0">No active auctions right now.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+<script>
+const AUCTION_CONTRACT_SUPPORTED = {{ auction_supported|yesno:"true,false" }};
+const CURRENT_USERNAME = "{{ current_username|escapejs }}";
+const CURRENT_WALLET = "{{ current_wallet|default:''|escapejs }}".toLowerCase();
+
+async function buyResale(resaleId, priceEth, sellerWallet) {
+
+    if (!window.ethereum) {
+        alert("MetaMask not detected!");
+        return;
+    }
+
+    if (!sellerWallet) {
+        alert("Seller wallet not available.");
+        return;
+    }
+
+    // STEP 1: pay ETH directly to seller wallet
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = await provider.getSigner();
+
+        const normalizedPrice = String(priceEth).trim();
+        const tx = await signer.sendTransaction({
+            to: sellerWallet,
+            value: ethers.parseEther(normalizedPrice)
+        });
+        await tx.wait();
+    } catch (err) {
+        const message = (err && (err.shortMessage || err.message)) ? (err.shortMessage || err.message) : "";
+        if (err && (err.code === "INSUFFICIENT_FUNDS" || message.toLowerCase().includes("insufficient funds"))) {
+            alert("Insufficient funds in this MetaMask account.");
+        } else if (err && err.code === 4001) {
+            alert("Transaction rejected in MetaMask.");
+        } else {
+            alert("Payment transaction failed. Please try again.");
+        }
+        return;
+    }
+
+    // STEP 2: inform Django to transfer ownership
+    fetch(`/Users/buy_resale/${resaleId}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        if (data.status === "success") location.reload();
+    });
+}
+
+const auctionState = { auctions: [] };
+
+function getTimeLeft(endIso) {
+    const end = new Date(endIso).getTime();
+    const now = Date.now();
+    const diff = end - now;
+    if (diff <= 0) return "Ended";
+
+    const totalSeconds = Math.floor(diff / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+function renderAuctions() {
+    const grid = document.getElementById("auctionGrid");
+    const empty = document.getElementById("auctionEmpty");
+
+    if (!auctionState.auctions.length) {
+        grid.innerHTML = "";
+        empty.classList.remove("d-none");
+        return;
+    }
+
+    empty.classList.add("d-none");
+    grid.innerHTML = auctionState.auctions.map((a) => {
+        const endedByTime = new Date(a.end_time).getTime() <= Date.now();
+        const ended = a.status === "ended" || endedByTime;
+        const highest = Number(a.highest_bid || 0).toFixed(4);
+        const winnerText = a.highest_bidder ? a.highest_bidder : "No bids";
+        const canEndNow = !ended && !!a.can_end_now;
+
+        return `
+          <div class="col-md-6 col-lg-4 mb-4">
+            <div class="dark-card shadow-sm p-0 h-100">
+              ${a.poster_url ? `<img src="${a.poster_url}" class="card-img-top rounded-top" style="height:180px; object-fit:cover;">` : ""}
+              <div class="p-3">
+                <h5 class="fw-bold text-white mb-1">${a.event_title}</h5>
+                <p class="text-secondary small mb-1"><strong>Token:</strong> ${a.token_id}</p>
+                <p class="text-secondary small mb-1"><strong>Auction ID:</strong> ${a.id}</p>
+                <p class="text-info mb-1"><strong>Highest Bid:</strong> ${highest} ETH</p>
+                <p class="${ended ? "text-danger" : "text-warning"} mb-2">
+                  <strong>Time Left:</strong> <span id="countdown-${a.id}">${getTimeLeft(a.end_time)}</span>
+                </p>
+
+                <input
+                  id="bid-input-${a.id}"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  class="form-control bg-dark text-light border-secondary mb-2"
+                  placeholder="Enter bid in ETH"
+                  ${ended ? "disabled" : ""}
+                />
+
+                <button
+                  id="bid-btn-${a.id}"
+                  class="btn btn-info text-black fw-bold w-100"
+                  onclick="submitBid(${a.id})"
+                  ${ended ? "disabled" : ""}
+                >
+                  <i class="fas fa-gavel"></i> Place Bid
+                </button>
+                ${canEndNow ? `
+                <button
+                  id="end-auction-btn-${a.id}"
+                  class="btn btn-warning text-black fw-bold w-100 mt-2"
+                  onclick="endAuctionNow(${a.id})"
+                >
+                  <i class="fas fa-stop-circle"></i> End Auction Now
+                </button>
+                ` : ""}
+
+                <p class="small mt-2 mb-0 ${ended ? "text-success" : "text-secondary"}" id="auction-status-${a.id}">
+                  ${ended ? `<strong>Winner:</strong> ${winnerText}` : "Auction is active"}
+                </p>
+                <p class="small mt-1 mb-0 text-secondary" id="bid-feedback-${a.id}"></p>
+              </div>
+            </div>
+          </div>
+        `;
+    }).join("");
+}
+
+async function loadAuctions() {
+    try {
+        const res = await fetch("{% url 'auction_list' %}?include_ended=true");
+        const data = await res.json();
+        if (data.status === "success") {
+            auctionState.auctions = data.auctions || [];
+            renderAuctions();
+        }
+    } catch (e) {
+        console.error("Failed to load auctions", e);
+    }
+}
+
+async function submitBid(auctionId) {
+    const input = document.getElementById(`bid-input-${auctionId}`);
+    const bidButton = document.getElementById(`bid-btn-${auctionId}`);
+    const feedback = document.getElementById(`bid-feedback-${auctionId}`);
+    const amountRaw = (input.value || "").trim();
+    const amount = parseFloat(amountRaw);
+
+    if (!amountRaw || !amount || amount <= 0) {
+        alert("Enter a valid bid amount");
+        return;
+    }
+
+    if (!window.ethereum) {
+        alert("MetaMask not detected!");
+        return;
+    }
+
+    const contractAddress = "{{ contract_address }}";
+    const auctionItem = auctionState.auctions.find(a => a.id === auctionId);
+
+    input.disabled = true;
+    if (bidButton) bidButton.disabled = true;
+    if (feedback) feedback.innerHTML = "<span class='text-warning'>Preparing bid transaction...</span>";
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = await provider.getSigner();
+        let receipt;
+
+        if (AUCTION_CONTRACT_SUPPORTED && contractAddress) {
+            const minimalAuctionAbi = [
+                "function placeBid(uint256 auctionId) payable"
+            ];
+            const auctionContract = new ethers.Contract(contractAddress, minimalAuctionAbi, signer);
+            const tx = await auctionContract.placeBid(auctionId, {
+                value: ethers.parseEther(amountRaw)
+            });
+            if (feedback) feedback.innerHTML = "<span class='text-warning'>Bid tx sent. Waiting for confirmation...</span>";
+            receipt = await tx.wait();
+        } else {
+            if (!auctionItem || !auctionItem.seller_wallet) {
+                throw new Error("Seller wallet not found for this auction");
+            }
+            const tx = await signer.sendTransaction({
+                to: auctionItem.seller_wallet,
+                value: ethers.parseEther(amountRaw)
+            });
+            if (feedback) feedback.innerHTML = "<span class='text-warning'>Payment tx sent. Waiting for confirmation...</span>";
+            receipt = await tx.wait();
+        }
+
+        // Record bid in Django after chain/payment success.
+        const res = await fetch("{% url 'place_bid' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                auction_id: auctionId,
+                amount: amount,
+                tx_hash: receipt.hash
+            })
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+            if (feedback) feedback.innerHTML = `<span class='text-success'>Bid confirmed! Tx: ${receipt.hash.slice(0, 10)}...</span>`;
+            input.value = "";
+            await loadAuctions();
+        } else {
+            if (feedback) feedback.innerHTML = `<span class='text-danger'>${data.message || "Backend bid save failed"}</span>`;
+        }
+    } catch (e) {
+        const message = (e && (e.shortMessage || e.message)) ? (e.shortMessage || e.message) : "";
+        if (e && e.code === 4001) {
+            if (feedback) feedback.innerHTML = "<span class='text-danger'>Transaction rejected in MetaMask.</span>";
+        } else if (e && (e.code === "INSUFFICIENT_FUNDS" || message.toLowerCase().includes("insufficient funds"))) {
+            if (feedback) feedback.innerHTML = "<span class='text-danger'>Insufficient funds for this bid.</span>";
+        } else {
+            if (feedback) feedback.innerHTML = `<span class='text-danger'>${message || "Bid failed."}</span>`;
+        }
+    } finally {
+        const cardAuction = auctionState.auctions.find(a => a.id === auctionId);
+        const endedByTime = cardAuction ? (new Date(cardAuction.end_time).getTime() <= Date.now() || cardAuction.status === "ended") : false;
+        input.disabled = endedByTime;
+        if (bidButton) bidButton.disabled = endedByTime;
+    }
+}
+
+async function endAuctionNow(auctionId) {
+    const btn = document.getElementById(`end-auction-btn-${auctionId}`);
+    const feedback = document.getElementById(`bid-feedback-${auctionId}`);
+    if (btn) btn.disabled = true;
+    if (feedback) feedback.innerHTML = "<span class='text-warning'>Ending auction...</span>";
+
+    try {
+        const res = await fetch(`/Users/auctions/${auctionId}/end-now/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+            if (feedback) feedback.innerHTML = `<span class='text-success'>${data.message}</span>`;
+            await loadAuctions();
+        } else {
+            if (feedback) feedback.innerHTML = `<span class='text-danger'>${data.message || "Failed to end auction"}</span>`;
+            if (btn) btn.disabled = false;
+        }
+    } catch (e) {
+        if (feedback) feedback.innerHTML = "<span class='text-danger'>Failed to end auction.</span>";
+        if (btn) btn.disabled = false;
+    }
+}
+
+function startCountdownTicker() {
+    setInterval(() => {
+        auctionState.auctions.forEach((a) => {
+            const endedByTime = new Date(a.end_time).getTime() <= Date.now();
+            const countdownEl = document.getElementById(`countdown-${a.id}`);
+            const inputEl = document.getElementById(`bid-input-${a.id}`);
+            const statusEl = document.getElementById(`auction-status-${a.id}`);
+            if (!countdownEl || !inputEl || !statusEl) return;
+
+            countdownEl.innerText = getTimeLeft(a.end_time);
+            if (endedByTime || a.status === "ended") {
+                inputEl.disabled = true;
+                const button = inputEl.parentElement.querySelector("button");
+                if (button) button.disabled = true;
+                statusEl.className = "small mt-2 mb-0 text-success";
+                statusEl.innerHTML = `<strong>Winner:</strong> ${a.highest_bidder || "No bids"}`;
+            }
+        });
+    }, 1000);
+}
+
+window.addEventListener("load", async () => {
+    await loadAuctions();
+    startCountdownTicker();
+    setInterval(loadAuctions, 15000);
+
+    if (!AUCTION_CONTRACT_SUPPORTED) {
+        const labels = document.querySelectorAll('[id^="auction-status-"]');
+        labels.forEach((el) => {
+            el.className = "small mt-2 mb-0 text-warning";
+            el.innerHTML = "Using fallback bidding mode (wallet payment + DB bid)";
+        });
+    }
+});
+</script>
+
+{% endblock %}

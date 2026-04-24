@@ -1,0 +1,80 @@
+{% extends 'admin/adminbase.html' %}
+{% block title %}Refund Requests{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="card shadow">
+    <div class="card-header bg-danger text-white">
+      <h4 class="mb-0"><i class="fas fa-undo"></i> Refund Requests</h4>
+    </div>
+
+    <div class="card-body">
+
+      <table class="table table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>User</th>
+            <th>Event</th>
+            <th>Token ID</th>
+            <th>Amount (ETH)</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for r in refunds %}
+          <tr>
+            <td>{{ r.user.username }}</td>
+            <td>{{ r.ticket.event.title }}</td>
+            <td>{{ r.ticket.token_id }}</td>
+            <td>{{ r.amount_eth }}</td>
+            <td>{{ r.reason|default:"—" }}</td>
+
+            <td>
+              {% if r.is_processed %}
+                {% if r.approved %}
+                  <span class="badge bg-success">Approved</span>
+                {% else %}
+                  <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-warning">Pending</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if not r.is_processed %}
+              <a href="{% url 'approve_refund' r.id %}" 
+                 class="btn btn-success btn-sm mb-1">
+                Approve
+              </a>
+              <a href="{% url 'reject_refund' r.id %}" 
+                 class="btn btn-danger btn-sm">
+                Reject
+              </a>
+              {% else %}
+              <button class="btn btn-secondary btn-sm" disabled>Processed</button>
+              {% endif %}
+            </td>
+
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted">
+              No refund requests found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

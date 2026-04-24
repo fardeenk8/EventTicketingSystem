@@ -1,0 +1,153 @@
+{% extends 'admin/adminbase.html' %}
+{% block title %}Create Event{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg">
+
+    <!-- Header -->
+    <div class="mb-4 d-flex align-items-center justify-content-between">
+      <h4 class="fw-bold text-info mb-0">
+        <i class="fas fa-calendar-plus"></i> Create New Event
+      </h4>
+    </div>
+
+    <hr class="border-secondary">
+
+    <form action="" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- Event Title -->
+      <div class="mb-3">
+        <label class="form-label text-info fw-bold">Event Title</label>
+        <input type="text" name="title"
+               class="form-control bg-dark text-light border-secondary"
+               required>
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label text-info fw-bold">Description</label>
+        <textarea name="description"
+                  class="form-control bg-dark text-light border-secondary"
+                  rows="4" required></textarea>
+      </div>
+
+      <!-- Date and Time -->
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label text-info fw-bold">Date</label>
+          <input type="date" name="date"
+                 class="form-control bg-dark text-light border-secondary"
+                 required>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label text-info fw-bold">Time</label>
+          <input type="time" name="time"
+                 class="form-control bg-dark text-light border-secondary"
+                 required>
+        </div>
+      </div>
+
+      <!-- Venue -->
+      <div class="mb-3">
+        <label class="form-label text-info fw-bold">Venue</label>
+        <input type="text" name="venue"
+               class="form-control bg-dark text-light border-secondary"
+               required>
+      </div>
+
+      <!-- Ticket Pricing Section -->
+      <div class="row">
+
+        <!-- Currency Selection -->
+        <div class="col-md-4 mb-3">
+          <label class="form-label text-info fw-bold">Currency</label>
+          <select id="currencySelect"
+                  class="form-control bg-dark text-light border-secondary">
+            <option value="ETH">ETH (Default)</option>
+            <option value="USD">USD - US Dollar</option>
+            <option value="INR">INR - Indian Rupees</option>
+            <option value="EUR">EUR - Euro</option>
+            <option value="AED">AED - UAE Dirham</option>
+          </select>
+        </div>
+
+        <!-- User Price Input -->
+        <div class="col-md-4 mb-3">
+          <label class="form-label text-info fw-bold">Enter Price</label>
+          <input type="number" id="inputPrice"
+                 class="form-control bg-dark text-light border-secondary"
+                 step="0.01" placeholder="Enter amount" required>
+        </div>
+
+        <!-- Auto ETH Conversion -->
+        <div class="col-md-4 mb-3">
+          <label class="form-label text-info fw-bold">Price in ETH</label>
+          <input type="number" id="ethPrice" name="price"
+                 class="form-control bg-dark text-light border-secondary"
+                 step="0.000001" readonly required>
+        </div>
+
+      </div>
+
+      <!-- Total Tickets -->
+      <div class="mb-3">
+        <label class="form-label text-info fw-bold">Total Tickets</label>
+        <input type="number" name="total_tickets"
+               class="form-control bg-dark text-light border-secondary"
+               required>
+      </div>
+
+      <!-- Poster Upload -->
+      <div class="mb-3">
+        <label class="form-label text-info fw-bold">Event Poster</label>
+        <input type="file" name="poster"
+               class="form-control bg-dark text-light border-secondary"
+               required>
+      </div>
+
+      <!-- Submit -->
+      <button class="btn btn-info text-black fw-bold w-100 mt-3 py-2">
+        <i class="fas fa-save"></i> Create Event
+      </button>
+
+    </form>
+
+  </div>
+</div>
+
+<!-- JS: Currency Conversion -->
+<script>
+  const currencyRates = {
+      "USD": 0.00025, 
+      "INR": 0.0000030,
+      "EUR": 0.00027,
+      "AED": 0.000068,
+      "ETH": 1
+  };
+
+  const currencySelect = document.getElementById("currencySelect");
+  const inputPrice = document.getElementById("inputPrice");
+  const ethPrice = document.getElementById("ethPrice");
+
+  function convertToETH() {
+      let currency = currencySelect.value;
+      let amount = parseFloat(inputPrice.value);
+
+      if (!amount || amount <= 0) {
+          ethPrice.value = "";
+          return;
+      }
+
+      let ethValue = amount * currencyRates[currency];
+      ethPrice.value = ethValue.toFixed(6);
+  }
+
+  currencySelect.addEventListener("change", convertToETH);
+  inputPrice.addEventListener("input", convertToETH);
+</script>
+
+{% endblock %}

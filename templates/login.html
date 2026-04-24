@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Login - Event Management DApp{% endblock %}
+
+{% block content %}
+<div class="col-md-6 col-lg-5 mx-auto dark-card p-5 shadow-lg">
+
+  <h2 class="fw-bold mb-4 text-center text-white">Login</h2>
+
+  {% if messages %}
+  <div class="container mb-4">
+    {% for message in messages %}
+      <div class="alert 
+                  {% if message.tags == 'error' %}alert-danger
+                  {% elif message.tags == 'success' %}alert-success
+                  {% elif message.tags == 'warning' %}alert-warning
+                  {% else %}alert-info{% endif %} 
+                  alert-dismissible fade show shadow-sm" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form action="{% url 'user_login' %}" method="post">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <input type="text" name="username" class="form-control bg-white text-dark border-secondary" placeholder="Your Username" required>
+    </div>
+
+    <div class="mb-3">
+      <input type="password" name="password" class="form-control bg-white text-dark border-secondary" placeholder="Your Password" required>
+    </div>
+
+    <div class="text-center">
+      <button type="submit" class="btn btn-info text-black px-5 py-2 rounded-pill shadow">
+        <i class="fas fa-sign-in-alt"></i> Login
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

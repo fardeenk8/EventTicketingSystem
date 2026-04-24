@@ -1,0 +1,88 @@
+{% extends 'admin/adminbase.html' %}
+{% block title %}Ticket Holders - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold text-info mb-0">
+        <i class="fas fa-users"></i> Ticket Holders – {{ event.title }}
+      </h4>
+
+      <a href="{% url 'event_list' %}"
+         class="btn btn-info btn-sm text-black fw-bold shadow-sm">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
+
+    <hr class="border-secondary">
+
+    <!-- Table -->
+    <table class="table table-dark table-hover align-middle rounded overflow-hidden">
+
+      <thead class="bg-dark border-bottom border-secondary">
+        <tr class="text-info">
+          <th>Token ID</th>
+          <th>Username</th>
+          <th>Wallet</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+
+          <!-- Token ID -->
+          <td class="text-light">
+            <strong class="text-info">#{{ t.token_id }}</strong>
+          </td>
+
+          <!-- Username -->
+          <td class="text-light">
+            {% if t.username != "Unassigned" %}
+              {{ t.username }}
+            {% else %}
+              <span class="text-secondary">Not Purchased</span>
+            {% endif %}
+          </td>
+
+          <!-- Wallet -->
+          <td>
+            {% if t.wallet != "Not Assigned" %}
+              <span class="text-success">{{ t.wallet }}</span>
+            {% else %}
+              <span class="text-secondary">—</span>
+            {% endif %}
+          </td>
+
+          <!-- Status -->
+          <td>
+            {% if t.is_used %}
+              <span class="badge bg-success px-3 py-2">
+                <i class="fas fa-check"></i> USED
+              </span>
+            {% else %}
+              <span class="badge bg-warning text-dark px-3 py-2">
+                <i class="fas fa-clock"></i> NOT USED
+              </span>
+            {% endif %}
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+
+    {% if tickets|length == 0 %}
+      <p class="text-center text-secondary mt-3">No tickets minted for this event.</p>
+    {% endif %}
+
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends 'user/userbase.html' %}
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg p-0">
+
+    <div class="row g-0">
+
+      <!-- Event Poster -->
+      <div class="col-md-4">
+        <img src="{{ event.poster.url }}" class="img-fluid rounded-start w-100"
+             style="height:100%; object-fit:cover;">
+      </div>
+
+      <!-- Event Details -->
+      <div class="col-md-8">
+        <div class="p-4">
+
+          <h3 class="text-info fw-bold">{{ event.title }}</h3>
+
+          <p class="text-secondary small mb-2">
+            {{ event.date }} • {{ event.time }} • {{ event.venue }}
+          </p>
+
+          <p class="text-light mb-3">{{ event.description }}</p>
+
+          <p class="text-info mb-1">
+            <strong>Price per ticket:</strong> {{ event.price }} ETH
+          </p>
+
+          <div class="dark-card mt-3 mb-3 p-3">
+            <h6 class="text-info fw-bold mb-2">
+              <i class="fas fa-chart-line"></i> Dynamic Pricing
+            </h6>
+            <p class="text-light mb-1"><strong>Base Price:</strong> <span id="basePrice">-</span> ETH</p>
+            <p class="text-light mb-1"><strong>Current Price:</strong> <span id="currentPrice">-</span> ETH</p>
+            <p class="text-light mb-0"><strong>Tickets Sold:</strong> <span id="ticketsSold">-</span></p>
+            <p id="priceSoonMsg" class="text-warning small mt-2 mb-0 d-none">
+              Price increasing soon as more tickets are sold.
+            </p>
+          </div>
+
+          <p class="text-info mb-3">
+            <strong>Available:</strong> {{ remaining }}
+          </p>
+
+          <!-- Quantity Selector -->
+          <div class="mb-3">
+            <label class="text-info fw-bold mb-1">Quantity</label>
+            <input type="number" id="qty"
+                   class="form-control bg-dark text-light border-secondary w-25"
+                   min="1" max="{{ remaining }}" value="1">
+          </div>
+
+          <!-- Total Price -->
+          <p class="text-light mt-2">
+            <strong>Total Price:</strong>
+            <span id="totalPrice">{{ event.price }}</span> ETH
+          </p>
+
+          <!-- Buy Button -->
+          <button id="buyBtn" class="btn btn-info text-black fw-bold px-4 py-2 mt-2">
+            <i class="fas fa-ticket-alt"></i> Buy Ticket(s)
+          </button>
+
+          <!-- Status Message -->
+          <p id="buyStatus" class="mt-3"></p>
+
+          <!-- Back -->
+          <a href="{% url 'browse_events' %}" class="btn btn-link text-info mt-3">
+            <i class="fas fa-arrow-left"></i> Back
+          </a>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+<script>
+    const qty = document.getElementById("qty");
+    const totalBox = document.getElementById("totalPrice");
+    const buyBtn = document.getElementById("buyBtn");
+    const statusBox = document.getElementById("buyStatus");
+    const basePriceBox = document.getElementById("basePrice");
+    const currentPriceBox = document.getElementById("currentPrice");
+    const ticketsSoldBox = document.getElementById("ticketsSold");
+    const priceSoonMsg = document.getElementById("priceSoonMsg");
+
+    let price = parseFloat("{{ event.price }}");
+    const available = parseInt("{{ remaining }}");
+
+    function refreshTotal() {
+        let q = parseInt(qty.value || "1");
+        if (q > available) {
+            q = available;
+            qty.value = available;
+        }
+        if (q < 1) q = 1;
+        totalBox.innerHTML = (q * price).toFixed(6);
+    }
+
+    qty.addEventListener("input", () => {
+        const q = parseInt(qty.value || "1");
+        if (q > available) {
+            alert(`Only ${available} tickets available!`);
+        }
+        refreshTotal();
+    });
+
+    async function loadPricing() {
+        try {
+            const res = await fetch("{% url 'event_pricing' event.id %}");
+            const data = await res.json();
+            if (data.status !== "success") return;
+
+            const base = parseFloat(data.base_price || 0);
+            const current = parseFloat(data.current_price || 0);
+            const sold = parseInt(data.tickets_sold || 0);
+            const inc = parseFloat(data.price_increment || 0);
+
+            basePriceBox.innerText = base.toFixed(6);
+            currentPriceBox.innerText = current.toFixed(6);
+            ticketsSoldBox.innerText = sold;
+
+            price = current;
+            refreshTotal();
+
+            if (inc > 0) {
+                priceSoonMsg.classList.remove("d-none");
+            } else {
+                priceSoonMsg.classList.add("d-none");
+            }
+        } catch (e) {
+            // Keep existing UI value if pricing API is not reachable.
+        }
+    }
+
+    async function buyTicket() {
+
+        if (!window.ethereum) {
+            alert("MetaMask not installed!");
+            return;
+        }
+
+        const contractAddress = "{{ contract_address }}";
+        if (!contractAddress) {
+            statusBox.innerHTML = "<span class='text-danger'>Contract address not configured. Ask admin to deploy the contract.</span>";
+            return;
+        }
+
+        const quantity = parseInt(qty.value);
+        if (!quantity || quantity < 1) {
+            statusBox.innerHTML = "<span class='text-danger'>Please select a valid quantity.</span>";
+            return;
+        }
+
+        statusBox.innerHTML = "Preparing transaction...";
+        buyBtn.disabled = true;
+
+        let tx_hash = "";
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = await provider.getSigner();
+            const from = await signer.getAddress();
+
+            let totalWei;
+            // Try dynamic-pricing contract functions first.
+            // If current deployed contract doesn't expose them, fall back to fixed UI price.
+            try {
+                const pricingAbi = [
+                    "function getCurrentPrice(uint256 eventId) view returns (uint256)",
+                    "function eventPricing(uint256 eventId) view returns (uint256 basePrice, uint256 priceIncrement, uint256 ticketsSold)"
+                ];
+                const pricingContract = new ethers.Contract(contractAddress, pricingAbi, provider);
+                const currentPriceWei = await pricingContract.getCurrentPrice({{ event.id }});
+                const pricingData = await pricingContract.eventPricing({{ event.id }});
+                const incrementWei = pricingData.priceIncrement;
+
+                const q = BigInt(quantity);
+                const incrementalPart = incrementWei * ((q * (q - 1n)) / 2n);
+                totalWei = (currentPriceWei * q) + incrementalPart;
+            } catch (_) {
+                const fixedTotalEth = (quantity * price).toString();
+                totalWei = ethers.parseEther(fixedTotalEth);
+            }
+
+            statusBox.innerHTML = "Processing MetaMask payment...";
+            const tx = await signer.sendTransaction({
+                to: "{{ ADMIN_ADDRESS }}",
+                value: totalWei
+            });
+            statusBox.innerHTML = "Transaction pending confirmation...";
+            const receipt = await tx.wait();
+            tx_hash = receipt.hash;
+        } catch (err) {
+            const message = (err && (err.shortMessage || err.message)) ? (err.shortMessage || err.message) : "";
+            if (err && (err.code === "INSUFFICIENT_FUNDS" || message.toLowerCase().includes("insufficient funds"))) {
+                statusBox.innerHTML = "<span class='text-danger'>Insufficient funds for this purchase.</span>";
+            } else if (err && err.code === 4001) {
+                statusBox.innerHTML = "<span class='text-danger'>Transaction rejected in MetaMask.</span>";
+            } else {
+                statusBox.innerHTML = "<span class='text-danger'>Transaction failed. Please try again.</span>";
+            }
+            buyBtn.disabled = false;
+            return;
+        }
+
+        statusBox.innerHTML = "Payment successful! Assigning tickets...";
+
+        fetch("{% url 'buy_ticket' event.id %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                quantity: quantity,
+                tx_hash: tx_hash
+            })
+        })
+        .then(res => res.json())
+        .then(async (data) => {
+            if (data.status === "success") {
+                statusBox.innerHTML = `<span class='text-success'>Tickets assigned! Token IDs: ${data.tokens.join(", ")}</span>`;
+                await loadPricing();
+                setTimeout(() => {
+                    window.location.href = "{% url 'user_wallet' %}";
+                }, 1500);
+            } else {
+                statusBox.innerHTML = `<span class='text-danger'>${data.message}</span>`;
+                buyBtn.disabled = false;
+            }
+        })
+        .catch(() => {
+            statusBox.innerHTML = "<span class='text-danger'>Server update failed after payment. Please contact admin with your transaction hash.</span>";
+            buyBtn.disabled = false;
+        });
+    }
+
+    buyBtn.addEventListener("click", buyTicket);
+    loadPricing();
+    setInterval(loadPricing, 8000);
+</script>
+
+{% endblock %}

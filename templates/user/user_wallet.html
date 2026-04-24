@@ -1,0 +1,97 @@
+{% extends 'user/userbase.html' %}
+{% block title %}My Wallet{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg mb-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold text-info mb-0">
+        <i class="fas fa-wallet"></i> Wallet & Dashboard
+      </h4>
+
+      <button id="connectWalletBtn" class="btn btn-info text-black fw-bold px-3 py-2 rounded-pill shadow-sm">
+        <i class="fas fa-link"></i> Connect Wallet
+      </button>
+    </div>
+
+    <!-- Wallet Details -->
+    <div class="text-light">
+
+      <p class="mb-2">
+        <strong class="text-info">Connected Wallet:</strong>
+        <span id="walletAddress">{{ user_wallet|default:"Not connected" }}</span>
+      </p>
+
+      <p class="mb-2">
+        <strong class="text-info">Balance:</strong>
+        <span id="walletBalance">0 ETH</span>
+      </p>
+
+      <p class="mb-3">
+        <strong class="text-info">My Tickets:</strong> {{ my_tickets_count }}
+      </p>
+
+      <hr class="border-secondary">
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Load Web3 -->
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+
+<script>
+async function connectWallet() {
+    if (!window.ethereum) {
+        alert("MetaMask not detected!");
+        return;
+    }
+
+    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+    const wallet = accounts[0];
+
+    document.getElementById("walletAddress").innerText = wallet;
+
+    fetch("{% url 'save_wallet' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ wallet: wallet })
+    });
+
+    const balanceWei = await ethereum.request({
+        method: "eth_getBalance",
+        params: [wallet, "latest"]
+    });
+
+    const web3 = new Web3(window.ethereum);
+    const balanceEth = web3.utils.fromWei(balanceWei, "ether");
+
+    document.getElementById("walletBalance").innerText =
+        parseFloat(balanceEth).toFixed(4) + " ETH";
+}
+
+window.addEventListener("load", async () => {
+    if (window.ethereum) {
+        try {
+            const accounts = await ethereum.request({ method: "eth_accounts" });
+            if (accounts.length > 0) {
+                connectWallet();
+            }
+        } catch (e) {}
+    }
+});
+
+document
+  .getElementById("connectWalletBtn")
+  .addEventListener("click", connectWallet);
+</script>
+
+{% endblock %}

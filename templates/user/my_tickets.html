@@ -1,0 +1,286 @@
+{% extends 'user/userbase.html' %}
+{% block title %}My Tickets{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg">
+
+    <div class="mb-4">
+      <h4 class="fw-bold text-info mb-0">
+        <i class="fas fa-ticket-alt"></i> My Tickets
+      </h4>
+      <hr class="border-secondary">
+    </div>
+
+    {% if tickets %}
+    <div class="row">
+
+      {% for t in tickets %}
+      <div class="col-md-4 mb-4">
+
+        <div class="dark-card shadow-sm p-0">
+
+          <!-- Poster -->
+          <img src="{{ t.event.poster.url }}" class="card-img-top rounded-top"
+               style="height:180px; object-fit:cover;">
+
+          <div class="p-3">
+            <h5 class="text-white fw-bold">{{ t.event.title }}</h5>
+
+            <p class="text-secondary small">
+              {{ t.event.date }} • {{ t.event.time }}
+            </p>
+
+            <p class="text-info mb-3">
+              <strong>Token ID:</strong> {{ t.token_id }}
+            </p>
+
+            <!-- QR Code -->
+            <div class="text-center mb-2">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=TICKET:{{ t.id }}|TOKEN:{{ t.token_id }}|EVENT:{{ t.event.id }}"
+                   class="img-fluid border rounded border-secondary">
+            </div>
+
+            <!-- View Event -->
+            <a href="{% url 'event_detail' t.event.id %}"
+               class="btn btn-info btn-sm text-black fw-bold w-100 mt-2">
+              View Event
+            </a>
+
+            <!-- Download PDF -->
+            <a href="{% url 'download_ticket' t.id %}"
+               class="btn btn-outline-info btn-sm mt-2 w-100">
+              <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
+
+            {% if not t.is_used %}
+
+            <!-- Resell Button -->
+            <button class="btn btn-warning btn-sm w-100 mt-2"
+                    onclick="openResaleModal('{{ t.id }}')">
+              <i class="fas fa-tags"></i> Resell Ticket
+            </button>
+
+            <!-- Refund Button -->
+            <button class="btn btn-danger btn-sm w-100 mt-2"
+                    onclick="openRefundModal('{{ t.id }}')">
+              <i class="fas fa-undo"></i> Request Refund
+            </button>
+
+            <button class="btn btn-outline-info btn-sm w-100 mt-2"
+                    onclick="openAuctionModal('{{ t.id }}')">
+              <i class="fas fa-gavel"></i> Create Auction
+            </button>
+
+            {% endif %}
+
+          </div>
+
+        </div>
+
+      </div>
+      {% endfor %}
+
+    </div>
+
+    {% else %}
+    <p class="text-center text-secondary">You don't have any tickets yet.</p>
+    {% endif %}
+
+  </div>
+
+</div>
+
+<!-- ============================= -->
+<!--  RESELL MODAL -->
+<!-- ============================= -->
+<div class="modal fade" id="resaleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-white">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Resell Ticket</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="resaleTicketId">
+
+        <label class="form-label">Set your resale price (ETH)</label>
+        <input type="number" class="form-control" id="resalePrice" step="0.001" placeholder="0.01">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="submitResale()">List for Sale</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================= -->
+<!--  REFUND MODAL -->
+<!-- ============================= -->
+<div class="modal fade" id="refundModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-white">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Request Refund</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="refundTicketId">
+
+        <label>Reason (optional)</label>
+        <textarea id="refundReason" class="form-control" placeholder="Why do you want a refund?"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-danger" onclick="submitRefund()">Submit Refund Request</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================= -->
+<!--  AUCTION MODAL -->
+<!-- ============================= -->
+<div class="modal fade" id="auctionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header">
+        <h5 class="modal-title">Create Auction</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="auctionTicketId">
+        <label class="form-label">Duration (hours)</label>
+        <input type="number" class="form-control" id="auctionDurationHours" min="1" value="2">
+        <small class="text-secondary">Auction starts now and ends after selected duration.</small>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-info text-black" onclick="submitAuction()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= -->
+<!--  JS FUNCTIONS -->
+<!-- ============================= -->
+<script>
+
+/* ============================
+   RESALE
+============================= */
+function openResaleModal(ticketId) {
+    document.getElementById("resaleTicketId").value = ticketId;
+    new bootstrap.Modal(document.getElementById("resaleModal")).show();
+}
+
+function submitResale() {
+    const ticketId = document.getElementById("resaleTicketId").value;
+    const price = document.getElementById("resalePrice").value;
+
+    if (!price || price <= 0) {
+        alert("Enter a valid ETH price");
+        return;
+    }
+
+    fetch("{% url 'resale_ticket' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({
+            ticket_id: ticketId,
+            price_eth: price
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        if (data.status === "success") {
+            location.reload();
+        }
+    });
+}
+
+
+/* ============================
+   REFUND
+============================= */
+function openRefundModal(ticketId) {
+    document.getElementById("refundTicketId").value = ticketId;
+    new bootstrap.Modal(document.getElementById("refundModal")).show();
+}
+
+function submitRefund() {
+    const ticketId = document.getElementById("refundTicketId").value;
+    const reason = document.getElementById("refundReason").value;
+
+    fetch("{% url 'refund_ticket' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            ticket_id: ticketId,
+            reason: reason
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        if (data.status === "success") location.reload();
+    });
+}
+
+/* ============================
+   AUCTION
+============================= */
+function openAuctionModal(ticketId) {
+    document.getElementById("auctionTicketId").value = ticketId;
+    new bootstrap.Modal(document.getElementById("auctionModal")).show();
+}
+
+function submitAuction() {
+    const ticketId = document.getElementById("auctionTicketId").value;
+    const hours = parseInt(document.getElementById("auctionDurationHours").value || "0");
+
+    if (!hours || hours < 1) {
+        alert("Duration must be at least 1 hour");
+        return;
+    }
+
+    const start = new Date();
+    const end = new Date(start.getTime() + (hours * 60 * 60 * 1000));
+
+    fetch("{% url 'create_auction' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            ticket_id: ticketId,
+            start_time: start.toISOString(),
+            end_time: end.toISOString()
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message || (data.status === "success" ? "Auction created successfully!" : "Failed to create auction"));
+        if (data.status === "success") location.reload();
+    });
+}
+
+</script>
+
+{% endblock %}

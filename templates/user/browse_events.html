@@ -1,0 +1,57 @@
+{% extends 'user/userbase.html' %}
+{% block title %}Browse Events{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- Page header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold text-info mb-0">
+      <i class="fas fa-calendar"></i> All Events
+    </h4>
+  </div>
+
+  <div class="row">
+
+    {% for e in events %}
+    <div class="col-md-4 mb-4">
+
+      <div class="dark-card shadow-lg p-0">
+
+        <!-- Poster -->
+        <img src="{{ e.poster.url }}" class="card-img-top rounded-top"
+             style="height:160px; object-fit:cover;">
+
+        <div class="p-3">
+
+          <!-- Title -->
+          <h5 class="text-white fw-bold">{{ e.title }}</h5>
+
+          <!-- Details -->
+          <p class="small text-secondary mb-1">
+            {{ e.date }} • {{ e.venue }}
+          </p>
+
+          <p class="mb-2 text-info">
+            <strong>Price:</strong> {{ e.price }} ETH
+          </p>
+
+          <!-- Button -->
+          <a href="{% url 'event_detail' e.id %}"
+             class="btn btn-info btn-sm text-black fw-bold px-3">
+            View
+          </a>
+
+        </div>
+
+      </div>
+    </div>
+
+    {% empty %}
+      <p class="text-muted">No events yet.</p>
+    {% endfor %}
+
+  </div>
+
+</div>
+{% endblock %}

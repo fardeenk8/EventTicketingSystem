@@ -1,0 +1,116 @@
+{% extends 'admin/adminbase.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- SUMMARY CARDS -->
+  <div class="row g-3">
+    <div class="col-md-3 col-6">
+      <div class="card shadow text-center p-3 bg-primary text-white">
+        <h4>{{ total_events }}</h4>
+        <p>Events</p>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+      <div class="card shadow text-center p-3 bg-warning text-dark">
+        <h4>{{ total_minted }}</h4>
+        <p>Total Tickets Minted</p>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+      <div class="card shadow text-center p-3 bg-success text-white">
+        <h4>{{ total_sold }}</h4>
+        <p>Tickets Sold</p>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+      <div class="card shadow text-center p-3 bg-dark text-white">
+        <h4>{{ total_eth_earned }} ETH</h4>
+        <p>Total Revenue (ETH)</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <!-- CHARTS SIDE BY SIDE -->
+  <div class="row g-4">
+
+    <!-- PIE CHART -->
+    <div class="col-lg-6 col-md-12">
+      <div class="card shadow h-100">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">Tickets Sold (Distribution)</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="ticketsPieChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAR CHART -->
+    <div class="col-lg-6 col-md-12">
+      <div class="card shadow h-100">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0">ETH Earned Per Event</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="ethChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // PIE CHART: Tickets Distribution
+  const ticketsPieCtx = document.getElementById('ticketsPieChart');
+  new Chart(ticketsPieCtx, {
+    type: 'pie',
+    data: {
+      labels: {{ dates|safe }},
+      datasets: [{
+        data: {{ quantities|safe }},
+        backgroundColor: [
+          '#0dcaf0', '#6610f2', '#d63384', '#fd7e14',
+          '#198754', '#ffc107', '#dc3545', '#20c997'
+        ],
+        borderColor: '#222',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+
+  // BAR CHART: ETH Earned Per Event
+  const ethCtx = document.getElementById('ethChart');
+  new Chart(ethCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ event_labels|safe }},
+      datasets: [{
+        label: 'ETH Earned',
+        data: {{ eth_values|safe }},
+        backgroundColor: '#28a745'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'admin/adminbase.html' %}
+{% block title %}Edit Event{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg">
+
+    <!-- Header -->
+    <h4 class="fw-bold text-info mb-3">
+      <i class="fas fa-edit"></i> Edit Event – {{ event.title }}
+    </h4>
+
+    <hr class="border-secondary">
+
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- Title -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Title</label>
+        <input name="title"
+               class="form-control bg-dark text-light border-secondary"
+               value="{{ event.title }}"
+               required>
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Description</label>
+        <textarea name="description"
+                  class="form-control bg-dark text-light border-secondary"
+                  rows="4">{{ event.description }}</textarea>
+      </div>
+
+      <!-- Date -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Date</label>
+        <input type="date"
+               name="date"
+               class="form-control bg-dark text-light border-secondary"
+               value="{{ event.date }}">
+      </div>
+
+      <!-- Time -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Time</label>
+        <input type="time"
+               name="time"
+               class="form-control bg-dark text-light border-secondary"
+               value="{{ event.time }}">
+      </div>
+
+      <!-- Venue -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Venue</label>
+        <input name="venue"
+               class="form-control bg-dark text-light border-secondary"
+               value="{{ event.venue }}">
+      </div>
+
+      <!-- Price -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Price (ETH)</label>
+        <input name="price"
+               class="form-control bg-dark text-light border-secondary"
+               value="{{ event.price }}">
+      </div>
+
+      <!-- Total Tickets -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Total Tickets</label>
+        <input name="total_tickets"
+               class="form-control bg-dark text-light border-secondary"
+               value="{{ event.total_tickets }}">
+      </div>
+
+      <!-- Poster -->
+      <div class="mb-3">
+        <label class="text-info fw-bold">Change Poster</label>
+        <input type="file"
+               name="poster"
+               class="form-control bg-dark text-light border-secondary">
+      </div>
+
+      <!-- Submit -->
+      <button class="btn btn-info text-black fw-bold mt-3 w-100 py-2">
+        <i class="fas fa-save"></i> Update Event
+      </button>
+
+    </form>
+
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'admin/adminbase.html' %}
+{% block title %}QR Scanner{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="dark-card shadow-lg p-4">
+
+    <!-- Header -->
+    <h4 class="fw-bold text-info mb-1">
+      <i class="fas fa-qrcode"></i> Ticket QR Scanner
+    </h4>
+    <p class="text-secondary mb-4">Scan a ticket QR to validate real-time entry.</p>
+
+    <!-- QR SCANNER -->
+    <div id="reader" class="rounded border border-secondary p-2" style="width: 360px;"></div>
+
+    <!-- RESULT BOX -->
+    <div id="scanResult"
+         class="mt-4 p-3 rounded border border-secondary bg-white text-light">
+      <span class="text-muted">Awaiting scan...</span>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- HTML5 QR Code Library -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+function onScanSuccess(decodedText) {
+    document.getElementById("scanResult").innerHTML =
+        "<strong class='text-info'>Scanning...</strong><br>" + decodedText;
+
+    // QR format: TOKEN:203|EVENT:5
+    let parts = decodedText.split("|");
+    let token = parts[0].split(":")[1];
+    let event = parts[1].split(":")[1];
+
+    const formData = new FormData();
+    formData.append("token_id", token);
+    formData.append("event_id", event);
+    formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+
+    fetch("{% url 'validate_ticket' %}", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        let div = document.getElementById("scanResult");
+
+        let details = `
+            <hr class='border-secondary'>
+            <strong class='text-info'>User:</strong> ${data.username || "Unknown"} <br>
+            <strong class='text-info'>Event:</strong> ${data.event || "N/A"} <br>
+            <strong class='text-info'>Token ID:</strong> ${data.token_id || "N/A"} <br>
+            <strong class='text-info'>Wallet:</strong> ${data.wallet || "N/A"} <br>
+        `;
+
+        if (data.status === "valid") {
+            div.innerHTML = `
+                <span class='text-success fw-bold fs-5'>VALID ✔</span><br>
+                <span class='text-light'>${data.message}</span>
+                ${details}
+            `;
+        }
+        else if (data.status === "used") {
+            div.innerHTML = `
+                <span class='text-warning fw-bold fs-5'>USED ⚠</span><br>
+                <span class='text-light'>${data.message}</span>
+                ${details}
+            `;
+        }
+        else if (data.status === "invalid") {
+            div.innerHTML = `
+                <span class='text-danger fw-bold fs-5'>INVALID ❌</span><br>
+                <span class='text-light'>${data.message}</span>
+                ${details}
+            `;
+        }
+        else if (data.status === "not_found") {
+            div.innerHTML = `
+                <span class='text-danger fw-bold fs-5'>NOT FOUND ❓</span><br>
+                <span class='text-light'>${data.message}</span>
+            `;
+        }
+    });
+}
+
+// Initialize scanner
+new Html5QrcodeScanner(
+    "reader",
+    { fps: 10, qrbox: 250 },
+).render(onScanSuccess);
+</script>
+
+{% endblock %}
