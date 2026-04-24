@@ -1,10 +1,51 @@
 {% extends 'base.html' %}
 {% block title %}Register - Event Management DApp{% endblock %}
 
-{% block content %}
-<div class="col-md-8 col-lg-6 mx-auto dark-card p-5 shadow-lg">
+{% block extra_css %}
+<style>
+  .auth-wrap {
+    min-height: calc(100vh - 230px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-  <h2 class="fw-bold mb-4 text-center text-white">Create an Account</h2>
+  .auth-card {
+    width: 100%;
+    max-width: 700px;
+    border-radius: 16px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-input {
+    border-radius: 12px !important;
+    border: 1px solid #d0d0d0 !important;
+    min-height: 48px;
+  }
+
+  .auth-input:focus {
+    border-color: #111 !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .auth-input:required:invalid {
+    border-color: #c9c9c9 !important;
+  }
+
+  .auth-input:required:valid {
+    border-color: #7f7f7f !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+<div class="auth-card p-4 p-md-5">
+
+  <h2 class="fw-bold mb-2 text-center text-dark">Create an Account</h2>
+  <p class="text-center text-secondary mb-4">Fill in your details to register.</p>
 
   {% if messages %}
   <div class="container mb-4">
@@ -28,37 +69,42 @@
     <div class="row g-3">
 
       <div class="col-md-6">
-        <input type="text" name="first_name" class="form-control bg-white text-dark border-secondary" placeholder="First Name" required>
+        <input type="text" name="first_name" class="form-control auth-input" placeholder="First Name" required>
       </div>
 
       <div class="col-md-6">
-        <input type="text" name="last_name" class="form-control bg-white text-dark border-secondary" placeholder="Last Name" required>
+        <input type="text" name="last_name" class="form-control auth-input" placeholder="Last Name" required>
       </div>
 
       <div class="col-md-6">
-        <input type="text" name="username" class="form-control bg-white text-dark border-secondary" placeholder="Username" required>
+        <input type="text" name="username" class="form-control auth-input" placeholder="Username" required>
       </div>
 
       <div class="col-md-6">
-        <input type="email" name="email" class="form-control bg-white text-dark border-secondary" placeholder="Your Email" required>
+        <input type="email" name="email" class="form-control auth-input" placeholder="Your Email" required>
       </div>
 
       <div class="col-md-6">
-        <input type="password" name="password" class="form-control bg-white text-dark border-secondary" placeholder="Password" required>
+        <input type="password" name="password" class="form-control auth-input" placeholder="Password" required>
       </div>
 
       <div class="col-md-6">
-        <input type="password" name="confirm_password" class="form-control bg-white text-dark border-secondary" placeholder="Confirm Password" required>
+        <input type="password" name="confirm_password" class="form-control auth-input" placeholder="Confirm Password" required>
       </div>
 
     </div>
 
-    <div class="text-center mt-4">
-      <button type="submit" class="btn btn-info text-black px-5 py-2 rounded-pill shadow">
+    <div class="mt-2 mb-2">
+      <small class="text-secondary">All fields are required. Input borders change visually when values look valid.</small>
+    </div>
+
+    <div class="d-grid mt-3">
+      <button type="submit" class="btn btn-primary py-2 shadow-sm">
         <i class="fas fa-user-plus"></i> Register
       </button>
     </div>
 
   </form>
+</div>
 </div>
 {% endblock %}

@@ -1,16 +1,91 @@
 {% extends 'base.html' %}
 {% block title %}Home - Event Management DApp{% endblock %}
 
+{% block extra_css %}
+<style>
+  .landing-wrap {
+    min-height: calc(100vh - 220px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background: #f5f5f5;
+  }
+
+  .landing-card {
+    width: 100%;
+    max-width: 960px;
+    text-align: center;
+    padding: 3rem 2rem;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid #e3e3e3;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.06);
+  }
+
+  .landing-title {
+    font-size: clamp(2rem, 4.5vw, 3.6rem);
+    font-weight: 800;
+    line-height: 1.15;
+    color: #101010;
+    margin-bottom: 0.9rem;
+  }
+
+  .landing-subtitle {
+    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    color: #4c4c4c;
+    max-width: 720px;
+    margin: 0 auto 2rem;
+  }
+
+  .landing-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  .landing-btn {
+    padding: 0.72rem 1.35rem;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .landing-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  }
+
+  .landing-btn-primary {
+    background: #111111;
+    color: #ffffff;
+  }
+
+  .landing-btn-secondary {
+    background: #efefef;
+    color: #111111;
+    border: 1px solid #d8d8d8;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="text-center py-5">
+<div class="landing-wrap">
+  <div class="landing-card">
+    <h1 class="landing-title">
+      Welcome to Event Management DApp
+    </h1>
 
-  <h1 class="display-4 fw-bold mb-3" style="color: #fff;">
-    Welcome to <span style="color:#0dcaf0;">Event Management DApp</span>
-  </h1>
+    <p class="landing-subtitle">
+      A decentralized way to create, manage, and book events securely.
+    </p>
 
-  <p class="lead mb-4" style="color:#ccc;">
-    A decentralized way to create, manage, and book events securely.
-  </p>
-
+    <div class="landing-actions">
+      <a href="{% url 'loginn' %}" class="landing-btn landing-btn-primary">Login</a>
+      <a href="{% url 'register' %}" class="landing-btn landing-btn-secondary">Register</a>
+    </div>
+  </div>
 </div>
 {% endblock %}

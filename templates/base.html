@@ -11,38 +11,67 @@
 
   <!-- Font Awesome Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
 
   <!-- Custom Dark Theme -->
   <style>
     body {
-      background: #000 !important;               /* Pure black background */
-      color: #eee;                               /* Slightly soft white text */
+      background: #ffffff;
+      color: #111111;
     }
 
     .navbar {
-      background: #111 !important;               /* Deep black navbar */
+      background: rgba(255, 255, 255, 0.78) !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
 
-    .navbar-brand, .nav-link {
-      color: #ddd !important;
-      transition: 0.2s;
+    .navbar-brand {
+      color: #111111 !important;
+      letter-spacing: 0.2px;
     }
 
-    .navbar-brand:hover, .nav-link:hover {
-      color: #fff !important;
+    .navbar .nav-link {
+      color: #202020 !important;
+      border-radius: 8px;
+      padding: 0.45rem 0.8rem !important;
+      transition: background-color 0.2s ease, color 0.2s ease;
+      margin-left: 0.15rem;
+    }
+
+    .navbar .nav-link:hover,
+    .navbar .nav-link:focus {
+      color: #000000 !important;
+      background-color: rgba(0, 0, 0, 0.06);
     }
 
     footer {
-      background: #111 !important;
+      background: #ffffff !important;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
     }
 
-    /* Optional card / container styling for inner pages */
     .dark-card {
-      background: #1a1a1a;
-      border: 1px solid #333;
+      background: linear-gradient(160deg, #ffffff, #f7f7f7);
+      border: 1px solid #dddddd;
       border-radius: 8px;
       padding: 1.5rem;
-      color: #ddd;
+      color: #111111;
+    }
+
+    main.page-content {
+      padding-top: 2.25rem;
+      padding-bottom: 2.75rem;
+    }
+
+    @media (max-width: 991.98px) {
+      .navbar .nav-link {
+        margin-left: 0;
+        margin-top: 0.25rem;
+      }
     }
   </style>
 
@@ -52,25 +81,36 @@
 <body class="d-flex flex-column min-vh-100">
 
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark shadow">
+  <nav class="navbar navbar-expand-lg navbar-dark shadow-sm sticky-top">
     <div class="container">
-      <a class="navbar-brand fw-bold" href="{% url 'index' %}">Event Management DApp</a>
+      <a class="navbar-brand fw-bold" href="{% url 'index' %}">
+        <i class="fas fa-ticket-alt me-2"></i>EventTicketingSystem
+      </a>
 
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="{% url 'loginn' %}">Login</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          {% if request.user.is_authenticated %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'userhome' %}">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'browse_events' %}">Events</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'my_tickets' %}">My Tickets</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'user_logout' %}">Logout</a></li>
+          {% else %}
+            {% if request.resolver_match.url_name != 'index' %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'loginn' %}">Login</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
+            {% endif %}
+          {% endif %}
         </ul>
       </div>
     </div>
   </nav>
 
   <!-- Main Content -->
-  <main class="flex-grow-1 d-flex align-items-center justify-content-center py-5">
+  <main class="flex-grow-1 page-content">
     <div class="container">
       {% block content %}
       {% endblock %}
@@ -78,7 +118,7 @@
   </main>
 
   <!-- Footer -->
-  <footer class="text-white text-center py-3 mt-auto">
+  <footer class="text-center py-3 mt-auto">
     <p class="mb-0">&copy; 2025 Event Management DApp. All rights reserved.</p>
   </footer>
 

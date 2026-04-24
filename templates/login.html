@@ -1,10 +1,51 @@
 {% extends 'base.html' %}
 {% block title %}Login - Event Management DApp{% endblock %}
 
-{% block content %}
-<div class="col-md-6 col-lg-5 mx-auto dark-card p-5 shadow-lg">
+{% block extra_css %}
+<style>
+  .auth-wrap {
+    min-height: calc(100vh - 230px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-  <h2 class="fw-bold mb-4 text-center text-white">Login</h2>
+  .auth-card {
+    width: 100%;
+    max-width: 520px;
+    border-radius: 16px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-input {
+    border-radius: 12px !important;
+    border: 1px solid #d0d0d0 !important;
+    min-height: 48px;
+  }
+
+  .auth-input:focus {
+    border-color: #111 !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .auth-input:required:invalid {
+    border-color: #c9c9c9 !important;
+  }
+
+  .auth-input:required:valid {
+    border-color: #7f7f7f !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+<div class="auth-card p-4 p-md-5">
+
+  <h2 class="fw-bold mb-2 text-center text-dark">Login</h2>
+  <p class="text-center text-secondary mb-4">Welcome back. Sign in to continue.</p>
 
   {% if messages %}
   <div class="container mb-4">
@@ -26,19 +67,22 @@
     {% csrf_token %}
 
     <div class="mb-3">
-      <input type="text" name="username" class="form-control bg-white text-dark border-secondary" placeholder="Your Username" required>
+      <input type="text" name="username" class="form-control auth-input" placeholder="Your Username" required>
+      <small class="text-secondary">Use the username you registered with.</small>
     </div>
 
     <div class="mb-3">
-      <input type="password" name="password" class="form-control bg-white text-dark border-secondary" placeholder="Your Password" required>
+      <input type="password" name="password" class="form-control auth-input" placeholder="Your Password" required>
+      <small class="text-secondary">Password field highlights when valid format is entered.</small>
     </div>
 
-    <div class="text-center">
-      <button type="submit" class="btn btn-info text-black px-5 py-2 rounded-pill shadow">
+    <div class="d-grid mt-4">
+      <button type="submit" class="btn btn-primary py-2 shadow-sm">
         <i class="fas fa-sign-in-alt"></i> Login
       </button>
     </div>
   </form>
 
+</div>
 </div>
 {% endblock %}
