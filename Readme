@@ -1,184 +1,143 @@
-1. Create a Ganache Workspace
-Step 1 — Open Ganache
+# 🎟️ Decentralized Event Ticketing System (DApp)
 
-Open the Ganache GUI application.
+A blockchain-based event ticketing platform designed to eliminate fraud, prevent duplication, and enable secure ticket ownership using NFTs.
 
-Step 2 — Create New Workspace
+---
 
-Click "New Workspace"
+## 📌 Overview
 
-Click "Ethereum"
+This project is a **Decentralized Application (DApp)** that allows event organizers to create events and users to securely purchase, verify, and manage tickets on the blockchain.
 
-Select "Add Project"
+Each ticket is minted as an NFT, ensuring:
+- Uniqueness
+- Ownership transparency
+- Tamper-proof validation
 
-Choose your smart contract project folder:
+The platform also introduces advanced features such as **dynamic pricing** and **auction-based ticket allocation**, making it more aligned with real-world ticketing systems.
 
-your_project/smartcontract/
+---
 
-Step 3 — Configure RPC Server
+## 🚀 Key Features
 
-Leave default settings:
+### 🎫 NFT-Based Ticketing
+- Each ticket is represented as an ERC-721 NFT
+- Ensures uniqueness and prevents duplication
+- Ownership securely stored on the blockchain
 
-RPC Server: http://127.0.0.1:7545
-Network ID: 5777
+---
 
-Step 4 — Save Workspace
+### 🛒 Ticket Purchase & Ownership
+- Users can buy tickets using MetaMask
+- Tickets are linked to wallet addresses
+- Transparent ownership tracking
 
-Click "SAVE WORKSPACE" (top-right).
+---
 
-Ganache automatically generates:
+### 🔁 Ticket Resale Marketplace
+- Users can resell tickets securely
+- Ownership transfer handled via smart contracts
+- Prevents fraud in secondary markets
 
-10 Ethereum accounts
+---
 
-Each with 100 ETH test balance
+### 📈 Dynamic Pricing System
+- Ticket prices increase based on demand
+- Early buyers get lower prices
+- Late buyers pay higher prices
+- Simulates real-world ticket pricing behavior
 
-Each with public address + private key
+---
 
-These will be used for:
+### 🔨 Auction System
+- High-demand tickets can be auctioned
+- Users place bids on tickets
+- Highest bidder wins
+- Transparent and decentralized bidding process
 
-Purpose	Ganache Account
-Admin / Contract Owner	Account #1
-User MetaMask (User1)	Account #2
-User MetaMask (User2)	Account #3
-# ################################################################
-2. Create a MetaMask Wallet
-Step 1 — Install MetaMask
+---
 
-Install the MetaMask extension in any browser (Chrome, Edge, Opera).
+### ✅ Ticket Verification & Redemption
+- QR code or blockchain-based validation
+- Prevents ticket reuse
+- Ensures authenticity at entry points
 
-Step 2 — Create a New Wallet
+---
 
-Click Create Wallet
+### 🛠 Admin Dashboard
+- Create and manage events
+- Monitor ticket sales and usage
+- Manage users and transactions
 
-Set a password
+---
 
-Save your Secret Recovery Phrase (important for your security)
+## 🏗️ Tech Stack
 
-You now have an empty MetaMask wallet.
-# ################################################################
-3. Connect MetaMask to Ganache (Local Blockchain)
-Step 1 — Add a Custom Network
+### 🔗 Blockchain
+- Solidity
+- Ganache (Local Ethereum Network)
+- MetaMask (Wallet Integration)
 
-In MetaMask:
+### 💻 Backend
+- Django (Python)
 
-Click Network Dropdown
+### 🌐 Frontend
+- HTML, CSS, JavaScript (Django Templates)
 
-Click Add Network
+---
 
-Choose Add a Network Manually
+## 📂 Project Structure
+Backend/ # Django core configuration
+Users/ # User-related logic
+Admins/ # Admin panel logic
+templates/ # HTML templates (UI)
+static/ # CSS, JS, assets
+smartcontract/ # Solidity contracts
 
-Enter the following:
+---
 
-Setting	Value
-Network Name	Ganache Local
-RPC URL	http://127.0.0.1:7545
+## ⚙️ Setup Instructions
 
-Chain ID	1337 (or 5777 depending on Ganache)
-Currency Symbol	ETH
+### 1. Clone Repository
+```bash
+git clone https://github.com/fardeenk8/EventTicketingSystem.git
+cd EventTicketingSystem
 
-Click Save.
+python -m venv venv
+source venv/bin/activate   # Mac/Linux
+venv\Scripts\activate      # Windows
 
-MetaMask is now connected to your Ganache blockchain.
-# ################################################################
-4. Import Ganache Accounts Into MetaMask
+## Install Dependencies
 
-Ganache gives 10 accounts.
-Each has a private key.
-You can import them into MetaMask to simulate real users.
+pip install -r requirements.txt
 
-Step 1 — Copy Ganache Private Key
+## Start Ganache
+Open Ganache GUI
+Start local blockchain
+RPC URL: http://127.0.0.1:7545
 
-In Ganache:
+## Connect MetaMask
+Add Ganache network
+Import accounts using private keys from Ganache
 
-Click account Key icon
-
-Click Copy Private Key
-
-Step 2 — Import into MetaMask
-
-In MetaMask:
-
-Click your account icon → Import Account
-
-Paste the Ganache private key
-
-The Ganache account (with 100 ETH balance) now appears in MetaMask.
-
-# ################################################################
-
-On sucessfully getting connected with the blockchain lets run these file in the Terminal
-
+## Compile & Deploy Smart Contract
 cd smartcontract
+python compile_contract.py
+python deploy_contract.py
 
-python compile_contract.py:
-    Results: Compilation successful! File saved as TicketNFT.json
+## Run Database Migrations
+python manage.py migrate
 
-python deploy_contract.py:
-    Deploying contract from: 0xFEeF46188F3fBA9A7ba1e3fa59C0D2780af8905a
-    Waiting for deployment...
-    Contract deployed at: 0x156f0dA4ABA5dE0Cde9D20DBcA8dE1dd34561c92
-    Updated TicketNFT.json with deployed contract address!
+## Start Server
+python manage.py runserver
+Open in browser:
+http://127.0.0.1:8000/
 
-cd ..\
-
-Refelcting the Database:
-
-    python manage.py makemigrations
-        No changes detected
-    python manage.py makemigrations Admins
-        Migrations for 'Admins':
-        Admins\migrations\0001_initial.py
-            - Create model Event
-            - Create model Ticket
-    python manage.py makemigrations Users 
-        Migrations for 'Users':
-        Users\migrations\0001_initial.py
-            - Create model Profile
-            - Create model RefundRequest
-            - Create model ResaleTicket
-            - Create model TicketPurchase
-    python manage.py migrate
-        Operations to perform:
-        Apply all migrations: Admins, Users, admin, auth, contenttypes, sessions
-        Running migrations:
-        Applying Admins.0001_initial... OK
-        Applying contenttypes.0001_initial... OK
-        Applying auth.0001_initial... OK
-        Applying Users.0001_initial... OK
-        Applying admin.0001_initial... OK
-        Applying admin.0002_logentry_remove_auto_add... OK
-        Applying admin.0003_logentry_add_action_flag_choices... OK
-        Applying contenttypes.0002_remove_content_type_name... OK
-        Applying auth.0002_alter_permission_name_max_length... OK
-        Applying auth.0003_alter_user_email_max_length... OK
-        Applying auth.0004_alter_user_username_opts... OK
-        Applying auth.0005_alter_user_last_login_null... OK
-        Applying auth.0006_require_contenttypes_0002... OK
-        Applying auth.0007_alter_validators_add_error_messages... OK
-        Applying auth.0008_alter_user_username_max_length... OK
-        Applying auth.0009_alter_user_last_name_max_length... OK
-        Applying auth.0010_alter_group_name_max_length... OK
-        Applying auth.0011_update_proxy_permissions... OK
-        Applying auth.0012_alter_user_first_name_max_length... OK
-        Applying sessions.0001_initial... OK
-
-Command to create the Admin:
-
-Python manage.py createsuperuser
-    Username (leave blank to use 'dell'): superadmin
-    Email address: superadmin@gmail.com
-    Password: superadmin
-    Password (again):superadmin
-    The password is too similar to the username.
-    Bypass password validation and create user anyway? [y/N]: y
-    Superuser created successfully.
-
-To run the project: python manage.py runserver
-    Watching for file changes with StatReloader
-    Performing system checks...
-
-    System check identified no issues (0 silenced).
-    December 01, 2025 - 14:08:58
-    Django version 5.0.7, using settings 'Backend.settings'
-    Starting development server at http://127.0.0.1:8000/ -> copy this and paste in any browser
-    Quit the server with CTRL-BREAK.
+How It Works
+Admin creates an event
+Smart contract mints tickets as NFTs
+Users purchase tickets via MetaMask
+Tickets are stored in user wallets
+Tickets can be:
+Resold
+Auctioned
+Verified at event entry
