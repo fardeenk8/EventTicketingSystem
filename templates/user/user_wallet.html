@@ -1,43 +1,73 @@
 {% extends 'user/userbase.html' %}
 {% block title %}My Wallet{% endblock %}
 
+{% block extra_css %}
+<style>
+  #connectWalletBtn.connect-wallet-cta {
+    min-width: 280px;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  }
+  #connectWalletBtn.connect-wallet-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14) !important;
+    filter: brightness(1.03);
+  }
+  #connectWalletBtn.connect-wallet-cta:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
+<div class="py-4 py-lg-5 w-100">
 
-  <div class="dark-card shadow-lg mb-4">
+  <div class="mb-4 mb-lg-5">
+    <h1 class="page-heading mb-1">Wallet Dashboard</h1>
+    <p class="text-secondary mb-0 small">Manage your connected wallet and view key stats at a glance.</p>
+  </div>
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="fw-bold text-info mb-0">
-        <i class="fas fa-wallet"></i> Wallet & Dashboard
-      </h4>
-
-      <button id="connectWalletBtn" class="btn btn-info text-black fw-bold px-3 py-2 rounded-pill shadow-sm">
-        <i class="fas fa-link"></i> Connect Wallet
-      </button>
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="col">
+      <div class="h-100 p-4 rounded-3 border bg-white shadow-sm d-flex flex-column">
+        <div class="d-flex align-items-center gap-2 text-secondary small text-uppercase fw-semibold mb-2">
+          <i class="fas fa-wallet" aria-hidden="true"></i>
+          <span>Wallet Address</span>
+        </div>
+        <p class="mb-0 fw-medium text-break flex-grow-1" id="walletAddress">{{ user_wallet|default:"Not connected" }}</p>
+      </div>
     </div>
-
-    <!-- Wallet Details -->
-    <div class="text-light">
-
-      <p class="mb-2">
-        <strong class="text-info">Connected Wallet:</strong>
-        <span id="walletAddress">{{ user_wallet|default:"Not connected" }}</span>
-      </p>
-
-      <p class="mb-2">
-        <strong class="text-info">Balance:</strong>
-        <span id="walletBalance">0 ETH</span>
-      </p>
-
-      <p class="mb-3">
-        <strong class="text-info">My Tickets:</strong> {{ my_tickets_count }}
-      </p>
-
-      <hr class="border-secondary">
-
+    <div class="col">
+      <div class="h-100 p-4 rounded-3 border bg-white shadow-sm d-flex flex-column">
+        <div class="d-flex align-items-center gap-2 text-secondary small text-uppercase fw-semibold mb-2">
+          <i class="fas fa-coins" aria-hidden="true"></i>
+          <span>Balance</span>
+        </div>
+        <p class="mb-0 fs-4 fw-bold" id="walletBalance">0 ETH</p>
+      </div>
     </div>
+    <div class="col">
+      <div class="h-100 p-4 rounded-3 border bg-white shadow-sm d-flex flex-column">
+        <div class="d-flex align-items-center gap-2 text-secondary small text-uppercase fw-semibold mb-2">
+          <i class="fas fa-ticket-alt" aria-hidden="true"></i>
+          <span>My Tickets</span>
+        </div>
+        <p class="mb-0 fs-4 fw-bold">{{ my_tickets_count }}</p>
+      </div>
+    </div>
+  </div>
 
+  <div class="d-flex justify-content-center mt-4 mt-lg-5 pt-1">
+    <button
+      type="button"
+      id="connectWalletBtn"
+      class="btn btn-info text-black fw-bold btn-lg px-5 py-3 rounded-pill shadow connect-wallet-cta"
+      aria-label="Connect wallet"
+    >
+      <i class="fas fa-wallet me-2" aria-hidden="true"></i> Connect Wallet
+    </button>
   </div>
 
 </div>

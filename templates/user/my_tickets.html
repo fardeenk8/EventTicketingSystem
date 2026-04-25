@@ -1,95 +1,239 @@
 {% extends 'user/userbase.html' %}
 {% block title %}My Tickets{% endblock %}
 
+{% block extra_css %}
+<style>
+  .tickets-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .tickets-heading {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 800;
+    color: #111;
+  }
+
+  .ticket-dashboard-card {
+    border: 1px solid #e4e4e4;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ticket-dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.12);
+  }
+
+  .ticket-poster {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+  }
+
+  .ticket-section {
+    padding: 1rem 1rem 0.85rem;
+  }
+
+  .section-divider {
+    border-top: 1px solid #ececec;
+    margin: 0;
+  }
+
+  .ticket-status-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+  }
+
+  .qr-panel {
+    background: #fafafa;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 0.75rem;
+  }
+
+  .qr-panel.is-hidden {
+    display: none;
+  }
+
+  .qr-toggle-btn {
+    width: 100%;
+  }
+
+  .ticket-actions .btn {
+    width: 100%;
+    margin-top: 0.55rem;
+  }
+
+  /* Refund modal UI */
+  #refundModal .modal-content {
+    border: 1px solid #e5e5e5 !important;
+    border-radius: 14px;
+    background: #ffffff !important;
+    color: #111111 !important;
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+  }
+
+  #refundModal .modal-header {
+    border-bottom: 1px solid #ececec;
+    padding: 0.95rem 1.1rem;
+    background: #f9f9f9;
+  }
+
+  #refundModal .modal-title {
+    font-weight: 700;
+    color: #111111;
+  }
+
+  #refundModal .btn-close {
+    filter: none;
+    opacity: 0.65;
+  }
+
+  #refundModal .btn-close:hover {
+    opacity: 1;
+  }
+
+  #refundModal .modal-body {
+    padding: 1.1rem;
+  }
+
+  #refundModal .modal-body label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #555;
+    margin-bottom: 0.45rem;
+  }
+
+  #refundModal #refundReason {
+    min-height: 110px;
+    border: 1px solid #d8d8d8;
+    border-radius: 10px;
+    background: #fff;
+    color: #111;
+    resize: vertical;
+  }
+
+  #refundModal #refundReason:focus {
+    border-color: #111;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08);
+  }
+
+  #refundModal .modal-footer {
+    border-top: 1px solid #ececec;
+    padding: 0.9rem 1.1rem 1rem;
+  }
+
+  #refundModal .modal-footer .btn-danger {
+    border-radius: 10px;
+    font-weight: 700;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-
+<div class="py-4 py-lg-5 tickets-shell">
   <div class="dark-card shadow-lg">
-
-    <div class="mb-4">
-      <h4 class="fw-bold text-info mb-0">
-        <i class="fas fa-ticket-alt"></i> My Tickets
-      </h4>
-      <hr class="border-secondary">
+    <div class="mb-4 mb-lg-5">
+      <h1 class="tickets-heading mb-1">
+        <i class="fas fa-ticket-alt me-2"></i>My Tickets
+      </h1>
+      <p class="text-secondary mb-0">Manage your active NFTs, download tickets, and create resale/auction listings.</p>
     </div>
 
     {% if tickets %}
-    <div class="row">
+    <div class="row g-4">
 
       {% for t in tickets %}
-      <div class="col-md-4 mb-4">
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="ticket-dashboard-card">
 
-        <div class="dark-card shadow-sm p-0">
+          <img src="{{ t.event.poster.url }}" class="ticket-poster" alt="{{ t.event.title }}">
 
-          <!-- Poster -->
-          <img src="{{ t.event.poster.url }}" class="card-img-top rounded-top"
-               style="height:180px; object-fit:cover;">
-
-          <div class="p-3">
-            <h5 class="text-white fw-bold">{{ t.event.title }}</h5>
-
-            <p class="text-secondary small">
-              {{ t.event.date }} • {{ t.event.time }}
-            </p>
-
-            <p class="text-info mb-3">
-              <strong>Token ID:</strong> {{ t.token_id }}
-            </p>
-
-            <!-- QR Code -->
-            <div class="text-center mb-2">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=TICKET:{{ t.id }}|TOKEN:{{ t.token_id }}|EVENT:{{ t.event.id }}"
-                   class="img-fluid border rounded border-secondary">
+          <div class="ticket-section">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <h5 class="fw-bold mb-0">{{ t.event.title }}</h5>
+              {% if t.is_used %}
+                <span class="badge bg-danger ticket-status-badge">Used</span>
+              {% else %}
+                <span class="badge bg-success ticket-status-badge">Active</span>
+              {% endif %}
             </div>
+            <p class="text-secondary small mb-2">{{ t.event.date }} • {{ t.event.time }}</p>
+            <p class="small text-secondary mb-0"><strong>Token ID:</strong> {{ t.token_id }}</p>
+          </div>
 
-            <!-- View Event -->
-            <a href="{% url 'event_detail' t.event.id %}"
-               class="btn btn-info btn-sm text-black fw-bold w-100 mt-2">
+          <hr class="section-divider">
+
+          <div class="ticket-section">
+            <button
+              type="button"
+              class="btn btn-outline-dark btn-sm fw-semibold qr-toggle-btn mb-2"
+              id="qr-toggle-btn-{{ t.id }}"
+              onclick="toggleTicketQr('{{ t.id }}')"
+            >
+              <i class="fas fa-qrcode me-1"></i> Show QR Code
+            </button>
+            <div class="qr-panel text-center is-hidden" id="qr-panel-{{ t.id }}">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=TICKET:{{ t.id }}|TOKEN:{{ t.token_id }}|EVENT:{{ t.event.id }}"
+                class="img-fluid border rounded border-secondary"
+                alt="QR for token {{ t.token_id }}"
+              >
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <div class="ticket-section pt-2 ticket-actions">
+            <a href="{% url 'event_detail' t.event.id %}" class="btn btn-primary btn-sm fw-bold">
               View Event
             </a>
 
-            <!-- Download PDF -->
             <a href="{% url 'download_ticket' t.id %}"
-               class="btn btn-outline-info btn-sm mt-2 w-100">
+               class="btn btn-outline-secondary btn-sm">
               <i class="fas fa-file-pdf"></i> Download PDF
             </a>
 
             {% if not t.is_used %}
-
-            <!-- Resell Button -->
-            <button class="btn btn-warning btn-sm w-100 mt-2"
-                    onclick="openResaleModal('{{ t.id }}')">
+            <button class="btn btn-warning btn-sm" onclick="openResaleModal('{{ t.id }}')">
               <i class="fas fa-tags"></i> Resell Ticket
             </button>
 
-            <!-- Refund Button -->
-            <button class="btn btn-danger btn-sm w-100 mt-2"
-                    onclick="openRefundModal('{{ t.id }}')">
+            <button class="btn btn-danger btn-sm" onclick="openRefundModal('{{ t.id }}')">
               <i class="fas fa-undo"></i> Request Refund
             </button>
 
-            <button class="btn btn-outline-info btn-sm w-100 mt-2"
-                    onclick="openAuctionModal('{{ t.id }}')">
+            <button class="btn btn-info btn-sm text-white" onclick="openAuctionModal('{{ t.id }}')">
               <i class="fas fa-gavel"></i> Create Auction
             </button>
-
             {% endif %}
-
           </div>
-
         </div>
-
       </div>
       {% endfor %}
 
     </div>
 
     {% else %}
-    <p class="text-center text-secondary">You don't have any tickets yet.</p>
+    <p class="text-center text-secondary py-3 mb-0">You don't have any tickets yet.</p>
     {% endif %}
 
   </div>
-
 </div>
 
 <!-- ============================= -->
@@ -124,11 +268,11 @@
 <!-- ============================= -->
 <div class="modal fade" id="refundModal" tabindex="-1">
   <div class="modal-dialog">
-    <div class="modal-content bg-dark text-white">
+    <div class="modal-content">
 
       <div class="modal-header">
         <h5 class="modal-title">Request Refund</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body">
@@ -279,6 +423,18 @@ function submitAuction() {
         alert(data.message || (data.status === "success" ? "Auction created successfully!" : "Failed to create auction"));
         if (data.status === "success") location.reload();
     });
+}
+
+function toggleTicketQr(ticketId) {
+    const panel = document.getElementById(`qr-panel-${ticketId}`);
+    const btn = document.getElementById(`qr-toggle-btn-${ticketId}`);
+    if (!panel || !btn) return;
+
+    const isHidden = panel.classList.contains("is-hidden");
+    panel.classList.toggle("is-hidden");
+    btn.innerHTML = isHidden
+        ? '<i class="fas fa-qrcode me-1"></i> Hide QR Code'
+        : '<i class="fas fa-qrcode me-1"></i> Show QR Code';
 }
 
 </script>

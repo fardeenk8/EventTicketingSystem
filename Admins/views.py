@@ -36,6 +36,33 @@ def admin_update_userstatus(request, user_id):
         messages.error(request, "User not found.")
         return redirect('adminhome')
 
+
+@login_required
+def admin_delete_user(request, user_id):
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("adminhome")
+
+    # Only allow staff/superuser to delete users from admin dashboard.
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "You are not authorized to delete users.")
+        return redirect("adminhome")
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, "User not found.")
+        return redirect("adminhome")
+
+    # Safety: avoid deleting your own logged-in admin account accidentally.
+    if user.id == request.user.id:
+        messages.warning(request, "You cannot delete your own account.")
+        return redirect("adminhome")
+
+    user.delete()
+    messages.success(request, f"User {user.username} has been deleted.")
+    return redirect("adminhome")
+
 def create_event(request):
     if request.method == "POST":
         title = request.POST.get('title')

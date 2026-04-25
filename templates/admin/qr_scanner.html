@@ -1,28 +1,153 @@
 {% extends 'admin/adminbase.html' %}
 {% block title %}QR Scanner{% endblock %}
 
+{% block extra_css %}
+<style>
+  .scanner-shell {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  .scanner-page-title {
+    font-size: clamp(1.9rem, 3.1vw, 2.6rem);
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 0.35rem;
+  }
+
+  .scanner-subtitle {
+    color: #666;
+    margin: 0;
+  }
+
+  .scanner-main-card,
+  .scanner-status-card {
+    background: #ffffff;
+    border: 1px solid #e6e6e6;
+    border-radius: 16px;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.07);
+  }
+
+  .scanner-main-card {
+    padding: 1.2rem;
+  }
+
+  .scanner-status-card {
+    padding: 1rem;
+  }
+
+  .scanner-placeholder {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 0.85rem;
+    border-radius: 50%;
+    border: 1px solid #e2e2e2;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: #4b5563;
+  }
+
+  .scanner-quick-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+
+  .scanner-quick-actions .btn {
+    border-radius: 10px;
+    font-weight: 700;
+    min-height: 42px;
+    padding: 0.45rem 0.9rem;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .scanner-quick-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
+  }
+
+  #reader {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    border-radius: 12px;
+    border: 1px solid #dfdfdf;
+    background: #fff;
+    padding: 0.55rem;
+  }
+
+  /* Style embedded html5-qrcode action buttons */
+  #reader button {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+  }
+
+  #scanResult {
+    border-radius: 12px;
+    border: 1px solid #d8d8d8;
+    background: #f9fafb;
+    color: #111;
+    min-height: 105px;
+  }
+
+  #scanResult.status-awaiting {
+    border-color: #d4d4d4;
+    background: #f9fafb;
+  }
+
+  #scanResult.status-scanning {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+
+  #scanResult.status-valid {
+    border-color: #86efac;
+    background: #f0fdf4;
+  }
+
+  #scanResult.status-error {
+    border-color: #fca5a5;
+    background: #fef2f2;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-
-  <div class="dark-card shadow-lg p-4">
-
-    <!-- Header -->
-    <h4 class="fw-bold text-info mb-1">
-      <i class="fas fa-qrcode"></i> Ticket QR Scanner
-    </h4>
-    <p class="text-secondary mb-4">Scan a ticket QR to validate real-time entry.</p>
-
-    <!-- QR SCANNER -->
-    <div id="reader" class="rounded border border-secondary p-2" style="width: 360px;"></div>
-
-    <!-- RESULT BOX -->
-    <div id="scanResult"
-         class="mt-4 p-3 rounded border border-secondary bg-white text-light">
-      <span class="text-muted">Awaiting scan...</span>
-    </div>
-
+<div class="py-4 py-lg-5 scanner-shell">
+  <div class="mb-4">
+    <h1 class="scanner-page-title">Ticket QR Scanner</h1>
+    <p class="scanner-subtitle">Scan a ticket QR code to validate entry.</p>
   </div>
 
+  <div class="scanner-main-card mb-4">
+    <div class="scanner-placeholder">
+      <i class="fas fa-qrcode" aria-hidden="true"></i>
+    </div>
+    <p class="text-center text-secondary mb-3">Point the camera at the QR ticket or upload an image to scan.</p>
+
+    <div class="scanner-quick-actions">
+      <button type="button" class="btn btn-primary" id="requestCameraBtn">
+        <i class="fas fa-camera me-1"></i> Request Camera Permissions
+      </button>
+      <button type="button" class="btn btn-outline-secondary" id="scanFromFileBtn">
+        <i class="fas fa-image me-1"></i> Scan from file
+      </button>
+    </div>
+
+    <div id="reader"></div>
+  </div>
+
+  <div class="scanner-status-card">
+    <h5 class="fw-bold mb-2"><i class="fas fa-info-circle me-2"></i>Scan Status</h5>
+    <div id="scanResult" class="p-3 status-awaiting">
+      <span class="text-muted fw-semibold">Awaiting scan...</span>
+    </div>
+  </div>
 </div>
 
 <!-- HTML5 QR Code Library -->
@@ -30,8 +155,10 @@
 
 <script>
 function onScanSuccess(decodedText) {
+    const scanDiv = document.getElementById("scanResult");
+    scanDiv.className = "p-3 status-scanning";
     document.getElementById("scanResult").innerHTML =
-        "<strong class='text-info'>Scanning...</strong><br>" + decodedText;
+        "<strong class='text-primary'>Scanning...</strong><br>" + decodedText;
 
     // QR format: TOKEN:203|EVENT:5
     let parts = decodedText.split("|");
@@ -53,47 +180,77 @@ function onScanSuccess(decodedText) {
 
         let details = `
             <hr class='border-secondary'>
-            <strong class='text-info'>User:</strong> ${data.username || "Unknown"} <br>
-            <strong class='text-info'>Event:</strong> ${data.event || "N/A"} <br>
-            <strong class='text-info'>Token ID:</strong> ${data.token_id || "N/A"} <br>
-            <strong class='text-info'>Wallet:</strong> ${data.wallet || "N/A"} <br>
+            <strong class='text-dark'>User:</strong> ${data.username || "Unknown"} <br>
+            <strong class='text-dark'>Event:</strong> ${data.event || "N/A"} <br>
+            <strong class='text-dark'>Token ID:</strong> ${data.token_id || "N/A"} <br>
+            <strong class='text-dark'>Wallet:</strong> ${data.wallet || "N/A"} <br>
         `;
 
         if (data.status === "valid") {
+            div.className = "p-3 status-valid";
             div.innerHTML = `
                 <span class='text-success fw-bold fs-5'>VALID ✔</span><br>
-                <span class='text-light'>${data.message}</span>
+                <span class='text-dark'>${data.message}</span>
                 ${details}
             `;
         }
         else if (data.status === "used") {
+            div.className = "p-3 status-error";
             div.innerHTML = `
                 <span class='text-warning fw-bold fs-5'>USED ⚠</span><br>
-                <span class='text-light'>${data.message}</span>
+                <span class='text-dark'>${data.message}</span>
                 ${details}
             `;
         }
         else if (data.status === "invalid") {
+            div.className = "p-3 status-error";
             div.innerHTML = `
                 <span class='text-danger fw-bold fs-5'>INVALID ❌</span><br>
-                <span class='text-light'>${data.message}</span>
+                <span class='text-dark'>${data.message}</span>
                 ${details}
             `;
         }
         else if (data.status === "not_found") {
+            div.className = "p-3 status-error";
             div.innerHTML = `
                 <span class='text-danger fw-bold fs-5'>NOT FOUND ❓</span><br>
-                <span class='text-light'>${data.message}</span>
+                <span class='text-dark'>${data.message}</span>
             `;
         }
     });
 }
 
 // Initialize scanner
-new Html5QrcodeScanner(
+const scannerInstance = new Html5QrcodeScanner(
     "reader",
     { fps: 10, qrbox: 250 },
-).render(onScanSuccess);
+);
+scannerInstance.render(onScanSuccess);
+
+document.getElementById("requestCameraBtn").addEventListener("click", async function () {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop());
+        const div = document.getElementById("scanResult");
+        div.className = "p-3 status-valid";
+        div.innerHTML = "<span class='text-success fw-semibold'>Camera permission granted. You can scan now.</span>";
+    } catch (e) {
+        const div = document.getElementById("scanResult");
+        div.className = "p-3 status-error";
+        div.innerHTML = "<span class='text-danger fw-semibold'>Camera permission denied or unavailable.</span>";
+    }
+});
+
+document.getElementById("scanFromFileBtn").addEventListener("click", function () {
+    const fileScanBtn = document.querySelector("#reader__filescan_input");
+    if (fileScanBtn) {
+        fileScanBtn.click();
+        return;
+    }
+    const div = document.getElementById("scanResult");
+    div.className = "p-3 status-awaiting";
+    div.innerHTML = "<span class='text-muted fw-semibold'>File scan option will appear once scanner UI finishes loading.</span>";
+});
 </script>
 
 {% endblock %}

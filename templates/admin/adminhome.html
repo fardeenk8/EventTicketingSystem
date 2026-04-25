@@ -1,35 +1,210 @@
 {% extends 'admin/adminbase.html' %}
 {% block title %}Admin - User Management{% endblock %}
 
+{% block extra_css %}
+<style>
+  .admin-home-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.2rem;
+  }
+
+  .admin-title {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 800;
+    color: #111;
+    margin: 0;
+  }
+
+  .admin-add-btn {
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 0.55rem 0.95rem;
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .admin-stat-card {
+    background: #fff;
+    border: 1px solid #e7e7e7;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    padding: 0.95rem 1rem;
+  }
+
+  .admin-stat-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6a6a6a;
+    margin-bottom: 0.3rem;
+    font-weight: 700;
+  }
+
+  .admin-stat-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #111;
+    margin: 0;
+    line-height: 1.1;
+  }
+
+  .users-table-wrap {
+    background: #fff;
+    border: 1px solid #e7e7e7;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+  }
+
+  .users-table {
+    margin-bottom: 0;
+  }
+
+  .users-table thead th {
+    background: #f4f4f4;
+    color: #222;
+    font-weight: 700;
+    border-bottom: 1px solid #dfdfdf;
+    padding: 0.85rem 0.75rem;
+  }
+
+  .users-table tbody td {
+    padding: 0.85rem 0.75rem;
+    border-color: #efefef;
+    vertical-align: middle;
+    color: #1f1f1f !important;
+  }
+
+  .users-table tbody tr:nth-child(even) {
+    background: #fcfcfc;
+  }
+
+  .users-table tbody tr:hover {
+    background: #f6f7f8;
+  }
+
+  .badge-active {
+    background: #1ea366 !important;
+  }
+
+  .badge-inactive {
+    background: #6d6d6d !important;
+  }
+
+  .user-action-btn {
+    min-width: 110px;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+
+  .delete-user-btn {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .add-user-modal .modal-content {
+    border: 1px solid #e3e3e3;
+    border-radius: 14px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
+  }
+
+  .add-user-modal .modal-header {
+    border-bottom: 1px solid #ececec;
+    padding: 0.9rem 1rem;
+  }
+
+  .add-user-modal .modal-title {
+    font-weight: 700;
+    color: #111;
+  }
+
+  .add-user-modal .modal-body {
+    padding: 1rem;
+  }
+
+  .add-user-modal .form-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #4f4f4f;
+    margin-bottom: 0.35rem;
+  }
+
+  .add-user-modal .form-control {
+    border-radius: 10px;
+    min-height: 44px;
+    border-color: #d9d9d9;
+  }
+
+  .add-user-modal .form-control:focus {
+    border-color: #111;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08);
+  }
+
+  @media (max-width: 768px) {
+    .admin-stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<section id="admin-home" class="section">
-
+<section id="admin-home" class="section admin-home-shell">
   <div class="dark-card shadow-lg rounded-3">
-
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4 class="fw-bold text-info mb-0">
-        <i class="fas fa-users-cog"></i> User Management
-      </h4>
-
-      <a href="/admin/auth/user/add/" class="btn btn-info text-black fw-bold btn-sm shadow-sm">
-        <i class="fas fa-plus"></i> Add User
-      </a>
+    <div class="admin-header">
+      <h1 class="admin-title">
+        <i class="fas fa-users-cog me-2"></i>User Management
+      </h1>
+      <button
+        type="button"
+        class="btn btn-info text-white admin-add-btn shadow-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#addUserModal"
+      >
+        <i class="fas fa-plus me-1"></i> Add User
+      </button>
     </div>
 
-    <hr class="border-secondary">
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card">
+        <p class="admin-stat-label mb-0">Total Users</p>
+        <p class="admin-stat-value">{{ users|length }}</p>
+      </div>
+      <div class="admin-stat-card">
+        <p class="admin-stat-label mb-0">Active Users</p>
+        <p class="admin-stat-value" id="activeUsersCount">0</p>
+      </div>
+    </div>
 
-    <!-- Table -->
-    <div class="table-responsive">
-      <table class="table table-dark table-hover align-middle rounded overflow-hidden">
+    <div class="table-responsive users-table-wrap">
+      <table class="table users-table align-middle">
 
-        <thead class="bg-dark border-bottom border-secondary">
-          <tr class="text-info">
+        <thead>
+          <tr>
             <th scope="col">Username</th>
             <th scope="col">Email</th>
             <th scope="col">Wallet</th>
             <th scope="col">Status</th>
             <th scope="col" class="text-center">Action</th>
+            <th scope="col" class="text-center">Delete</th>
           </tr>
         </thead>
 
@@ -37,11 +212,11 @@
           {% for user in users %}
             <tr>
 
-              <td class="text-light">{{ user.username }}</td>
-              <td class="text-light">{{ user.email }}</td>
-              <td class="text-light">
+              <td>{{ user.username }}</td>
+              <td>{{ user.email }}</td>
+              <td>
                 {% if user.profile.wallet %}
-                  <span class="text-success">{{ user.profile.wallet }}</span>
+                  <span class="text-success-emphasis">{{ user.profile.wallet }}</span>
                 {% else %}
                   <span class="text-secondary">Not connected</span>
                 {% endif %}
@@ -49,15 +224,15 @@
 
               <td>
                 {% if user.is_active %}
-                  <span class="badge bg-success px-3 py-2">Active</span>
+                  <span class="badge badge-active px-3 py-2 js-active-status">Active</span>
                 {% else %}
-                  <span class="badge bg-danger px-3 py-2">Inactive</span>
+                  <span class="badge badge-inactive px-3 py-2">Inactive</span>
                 {% endif %}
               </td>
 
               <td class="text-center">
                 <a href="{% url 'admin_update_userstatus' user.id %}"
-                   class="btn btn-sm {% if user.is_active %}btn-danger{% else %}btn-success{% endif %} fw-bold">
+                   class="btn btn-sm {% if user.is_active %}btn-danger{% else %}btn-success{% endif %} user-action-btn">
 
                   {% if user.is_active %}
                     <i class="fas fa-user-slash"></i> Deactivate
@@ -67,10 +242,25 @@
                 </a>
               </td>
 
+              <td class="text-center">
+                <form action="{% url 'admin_delete_user' user.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button
+                    type="submit"
+                    class="btn btn-outline-danger btn-sm delete-user-btn"
+                    title="Delete user"
+                    aria-label="Delete user {{ user.username }}"
+                    onclick="return confirm('Are you sure you want to permanently delete user {{ user.username }}?');"
+                  >
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </form>
+              </td>
+
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="text-center text-secondary">
+              <td colspan="6" class="text-center text-secondary">
                 No users found.
               </td>
             </tr>
@@ -83,4 +273,86 @@
   </div>
 
 </section>
+
+<div class="modal fade add-user-modal" id="addUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content bg-white text-dark">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{% url 'user_registration' %}" method="post" id="addUserForm">
+        <div class="modal-body">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="addUserUsername" class="form-label">Username</label>
+            <input type="text" class="form-control" id="addUserUsername" name="username" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="addUserEmail" class="form-label">Email</label>
+            <input type="email" class="form-control" id="addUserEmail" name="email" required>
+          </div>
+
+          <div class="mb-1">
+            <label for="addUserPassword" class="form-label">Password</label>
+            <input type="password" class="form-control" id="addUserPassword" required>
+          </div>
+
+          <input type="hidden" name="password1" id="addUserPassword1">
+          <input type="hidden" name="password2" id="addUserPassword2">
+          <input type="hidden" name="password" id="addUserPasswordRaw">
+          <input type="hidden" name="confirm_password" id="addUserConfirmPassword">
+          <input type="hidden" name="first_name" value="">
+          <input type="hidden" name="last_name" value="">
+          <input type="hidden" name="_continue" value="0">
+          <input type="hidden" name="_save" value="Save">
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-semibold">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function updateActiveUsersCount() {
+    const count = document.querySelectorAll(".js-active-status").length;
+    const target = document.getElementById("activeUsersCount");
+    if (target) target.textContent = String(count);
+  })();
+
+  document.getElementById("addUserForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const form = e.currentTarget;
+    const password = document.getElementById("addUserPassword").value || "";
+    document.getElementById("addUserPassword1").value = password;
+    document.getElementById("addUserPassword2").value = password;
+    document.getElementById("addUserPasswordRaw").value = password;
+    document.getElementById("addUserConfirmPassword").value = password;
+
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: formData
+    })
+    .then(() => {
+      const modalEl = document.getElementById("addUserModal");
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+      window.location.reload();
+    })
+    .catch(() => {
+      alert("Failed to create user. Please try again.");
+    });
+  });
+</script>
 {% endblock %}

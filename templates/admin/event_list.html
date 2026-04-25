@@ -1,27 +1,202 @@
 {% extends 'admin/adminbase.html' %}
 {% block title %}Event List{% endblock %}
 
+{% block extra_css %}
+<style>
+  .events-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+
+  .events-page-title {
+    font-size: clamp(1.95rem, 3.2vw, 2.7rem);
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 0.35rem;
+  }
+
+  .events-page-subtitle {
+    color: #666;
+    margin: 0;
+  }
+
+  .panel-card {
+    border: 1px solid #e7e7e7;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    padding: 1rem;
+    height: 100%;
+  }
+
+  .panel-title {
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+  }
+
+  .panel-title.pending {
+    color: #b45309;
+  }
+
+  .panel-title.completed {
+    color: #15803d;
+  }
+
+  .events-table-wrap {
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .events-table {
+    margin-bottom: 0;
+  }
+
+  .events-table thead th {
+    background: #f6f6f6;
+    color: #222;
+    font-weight: 700;
+    border-bottom: 1px solid #dfdfdf;
+    padding: 0.78rem 0.7rem;
+    vertical-align: middle;
+  }
+
+  .events-table tbody td {
+    color: #1f1f1f;
+    border-color: #ededed;
+    padding: 0.82rem 0.7rem;
+    vertical-align: middle;
+  }
+
+  .events-table tbody tr:nth-child(even) {
+    background: #fcfcfc;
+  }
+
+  .events-table tbody tr:hover {
+    background: #f7f7f7;
+  }
+
+  .minted-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .minted-badge.pending {
+    color: #92400e;
+    background: #fef3c7;
+  }
+
+  .minted-badge.completed {
+    color: #166534;
+    background: #dcfce7;
+  }
+
+  .actions-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 0;
+  }
+
+  .holders-btn,
+  .mint-btn {
+    border-radius: 8px;
+    font-weight: 700;
+    padding: 0.35rem 0.65rem;
+  }
+
+  .all-events-card {
+    border: 1px solid #e7e7e7;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    padding: 1rem;
+  }
+
+  .mint-progress {
+    width: 100%;
+    max-width: 180px;
+    height: 7px;
+    background: #ededed;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 0.35rem;
+  }
+
+  .mint-progress > span {
+    display: block;
+    height: 100%;
+    background: #2563eb;
+  }
+
+  .report-btn {
+    border-radius: 8px;
+    font-weight: 700;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .report-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  }
+
+  .pagination .page-link {
+    border-radius: 8px;
+    margin: 0 0.2rem;
+    color: #1f2937;
+    border-color: #ddd;
+    background: #fff;
+  }
+
+  .pagination .page-item.active .page-link {
+    background: #111;
+    border-color: #111;
+    color: #fff;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="py-4 py-lg-5 events-shell">
+  <div class="mb-4 mb-lg-5">
+    <h1 class="events-page-title">Event Management</h1>
+    <p class="events-page-subtitle">Manage and monitor all events.</p>
+  </div>
 
-<div class="container mt-4">
-
-  <div class="row">
+  <div class="row g-4">
     <!-- LEFT: Pending Mint -->
     <div class="col-md-6">
-      <div class="dark-card shadow-lg mb-4">
-
-        <h5 class="fw-bold text-warning mb-3">
+      <div class="panel-card">
+        <h5 class="panel-title pending">
           <i class="fas fa-hourglass-half"></i> Pending Mint Events
         </h5>
-        <hr class="border-secondary">
+        <p class="text-secondary small mb-3">Events where minting is still in progress.</p>
 
         {% if pending_events %}
-        <table class="table table-dark table-hover table-sm align-middle rounded overflow-hidden">
-          <thead class="bg-dark border-bottom border-secondary">
-            <tr class="text-info">
+        <div class="table-responsive events-table-wrap">
+        <table class="table events-table align-middle">
+          <thead>
+            <tr>
               <th>Title</th>
               <th>Mint Status</th>
-              <th colspan="2">Action</th>
+              <th class="text-end">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -30,36 +205,34 @@
             {% with e=item.event %}
             <tr>
 
-              <td class="text-light">{{ e.title }}</td>
+              <td>{{ e.title }}</td>
 
               <td>
-                <span class="badge bg-primary">{{ item.minted }} / {{ e.total_tickets }}</span>
+                <span class="minted-badge pending">{{ item.minted }} / {{ e.total_tickets }}</span>
 
                 <div class="progress mt-1" style="height: 6px;">
                   <div class="progress-bar bg-warning" style="width: {{ item.percentage }}%;"></div>
                 </div>
               </td>
 
-              <td>
-                <a href="{% url 'admin_mint_tickets' e.id %}" class="btn btn-success btn-sm">
+              <td class="text-end">
+                <div class="actions-inline">
+                <a href="{% url 'admin_mint_tickets' e.id %}" class="btn btn-success btn-sm mint-btn">
                   <i class="fas fa-coins"></i> Mint
                 </a>
-              </td>
 
-              <td>
-
-                <a href="{% url 'event_tickets' e.id %}" class="btn btn-info btn-sm">
+                <a href="{% url 'event_tickets' e.id %}" class="btn btn-info btn-sm icon-btn">
                   <i class="fas fa-ticket-alt"></i>
                 </a>
 
-                <a href="{% url 'edit_event' e.id %}" class="btn btn-primary btn-sm">
+                <a href="{% url 'edit_event' e.id %}" class="btn btn-primary btn-sm icon-btn">
                   <i class="fas fa-edit"></i>
                 </a>
 
-                <a href="{% url 'delete_event' e.id %}" class="btn btn-danger btn-sm">
+                <a href="{% url 'delete_event' e.id %}" class="btn btn-danger btn-sm icon-btn">
                   <i class="fas fa-trash-alt"></i>
                 </a>
-
+                </div>
               </td>
 
             </tr>
@@ -68,6 +241,7 @@
 
           </tbody>
         </table>
+        </div>
 
         {% else %}
           <p class="text-secondary">No pending events.</p>
@@ -78,21 +252,21 @@
 
     <!-- RIGHT: Completed Mint -->
     <div class="col-md-6">
-      <div class="dark-card shadow-lg mb-4">
-
-        <h5 class="fw-bold text-success mb-3">
+      <div class="panel-card">
+        <h5 class="panel-title completed">
           <i class="fas fa-check-circle"></i> Completed Mint Events
         </h5>
-        <hr class="border-secondary">
+        <p class="text-secondary small mb-3">Events that have finished minting all tickets.</p>
 
         {% if completed_events %}
-        <table class="table table-dark table-sm table-hover align-middle rounded overflow-hidden">
+        <div class="table-responsive events-table-wrap">
+        <table class="table events-table align-middle">
 
-          <thead class="bg-dark border-bottom border-secondary">
-            <tr class="text-info">
+          <thead>
+            <tr>
               <th>Title</th>
               <th>Mint Status</th>
-              <th colspan="2">Action</th>
+              <th class="text-end">Action</th>
             </tr>
           </thead>
 
@@ -101,34 +275,33 @@
             {% with e=item.event %}
             <tr>
 
-              <td class="text-light">{{ e.title }}</td>
+              <td>{{ e.title }}</td>
 
               <td>
-                <span class="badge bg-success">Fully Minted</span>
+                <span class="minted-badge completed">Fully Minted</span>
 
                 <div class="progress mt-1" style="height: 6px;">
                   <div class="progress-bar bg-success" style="width:100%;"></div>
                 </div>
               </td>
 
-              <td>
-                <a href="{% url 'event_tickets' e.id %}" class="btn btn-info btn-sm">
+              <td class="text-end">
+                <div class="actions-inline">
+                <a href="{% url 'event_tickets' e.id %}" class="btn btn-info btn-sm icon-btn">
                   <i class="fas fa-ticket-alt"></i>
                 </a>
-              </td>
-
-              <td>
-                <a href="{% url 'edit_event' e.id %}" class="btn btn-primary btn-sm">
+                <a href="{% url 'edit_event' e.id %}" class="btn btn-primary btn-sm icon-btn">
                   <i class="fas fa-edit"></i>
                 </a>
 
-                <a href="{% url 'delete_event' e.id %}" class="btn btn-danger btn-sm">
+                <a href="{% url 'delete_event' e.id %}" class="btn btn-danger btn-sm icon-btn">
                   <i class="fas fa-trash-alt"></i>
                 </a>
 
-                <a href="{% url 'ticket_holders' e.id %}" class="btn btn-info btn-sm mt-1">
+                <a href="{% url 'ticket_holders' e.id %}" class="btn btn-outline-info btn-sm holders-btn">
                   <i class="fas fa-users"></i> View Holders
                 </a>
+                </div>
               </td>
 
             </tr>
@@ -137,6 +310,7 @@
           </tbody>
 
         </table>
+        </div>
 
         {% else %}
           <p class="text-secondary">No completed events.</p>
@@ -147,17 +321,16 @@
   </div>
 
   <!-- ALL EVENTS TABLE -->
-  <div class="dark-card shadow-lg mt-4">
+  <div class="all-events-card mt-4">
 
-    <h5 class="fw-bold text-info mb-3">
+    <h5 class="fw-bold mb-3">
       <i class="fas fa-list"></i> All Events
     </h5>
 
-    <hr class="border-secondary">
-
-    <table class="table table-dark table-hover align-middle">
-      <thead class="bg-dark border-bottom border-secondary">
-        <tr class="text-info">
+    <div class="table-responsive events-table-wrap">
+    <table class="table events-table align-middle">
+      <thead>
+        <tr>
           <th>Title</th>
           <th>Date</th>
           <th>Venue</th>
@@ -170,14 +343,19 @@
         {% for item in page_obj %}
         {% with e=item.event %}
         <tr>
-          <td class="text-light">{{ e.title }}</td>
-          <td class="text-light">{{ e.date }}</td>
-          <td class="text-light">{{ e.venue }}</td>
-          <td class="text-light">{{ item.minted }} / {{ e.total_tickets }}</td>
+          <td>{{ e.title }}</td>
+          <td>{{ e.date }}</td>
+          <td>{{ e.venue }}</td>
+          <td>
+            <span class="minted-badge pending">{{ item.minted }} / {{ e.total_tickets }}</span>
+            <div class="mint-progress">
+              <span style="width: {{ item.percentage }}%;"></span>
+            </div>
+          </td>
 
           <td>
             <a href="{% url 'sales_report' item.event.id %}"
-               class="btn btn-info btn-sm text-black">
+               class="btn btn-info btn-sm text-white report-btn">
               <i class="fas fa-file-invoice"></i> Sales Report
             </a>
           </td>
@@ -186,6 +364,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     <!-- Pagination -->
     <nav>
@@ -193,7 +372,7 @@
 
         {% if page_obj.has_previous %}
           <li class="page-item">
-            <a class="page-link bg-dark text-info border-secondary"
+            <a class="page-link"
                href="?page={{ page_obj.previous_page_number }}">
                Previous
             </a>
@@ -201,14 +380,14 @@
         {% endif %}
 
         <li class="page-item active">
-          <a class="page-link bg-info text-black fw-bold">
+          <a class="page-link fw-bold">
             {{ page_obj.number }}
           </a>
         </li>
 
         {% if page_obj.has_next %}
           <li class="page-item">
-            <a class="page-link bg-dark text-info border-secondary"
+            <a class="page-link"
                href="?page={{ page_obj.next_page_number }}">
                Next
             </a>
@@ -221,5 +400,4 @@
   </div>
 
 </div>
-
 {% endblock %}

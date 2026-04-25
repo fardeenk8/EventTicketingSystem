@@ -4,6 +4,7 @@ from Admins.views import *
 urlpatterns = [
     path('adminhome/', adminhome, name='adminhome'),
     path('admin_update_userstatus/<int:user_id>/', admin_update_userstatus, name='admin_update_userstatus'),
+    path('admin_delete_user/<int:user_id>/', admin_delete_user, name='admin_delete_user'),
     path('create_event/', create_event, name='create_event'),
     path('event_list/', event_list, name='event_list'),
     path('mint_tickets/<int:event_id>/', admin_mint_tickets, name='admin_mint_tickets'),

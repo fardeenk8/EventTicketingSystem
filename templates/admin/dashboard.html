@@ -1,71 +1,180 @@
 {% extends 'admin/adminbase.html' %}
 {% block title %}Admin Dashboard{% endblock %}
 
+{% block extra_css %}
+<style>
+  .analytics-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+
+  .analytics-title {
+    font-size: clamp(2rem, 3.3vw, 2.8rem);
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 0.35rem;
+  }
+
+  .analytics-subtitle {
+    color: #666;
+    margin: 0;
+  }
+
+  .stats-section {
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid #e9e9e9;
+    margin-bottom: 2rem;
+  }
+
+  .metric-card {
+    border: 1px solid #e8e8e8;
+    border-radius: 14px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+    padding: 1.15rem 1rem;
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.1);
+  }
+
+  .metric-card .metric-icon {
+    font-size: 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .metric-value {
+    font-size: clamp(1.55rem, 2.8vw, 2.15rem);
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 0.15rem;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+  }
+
+  .metric-label {
+    margin: 0;
+    color: #5f5f5f;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .metric-tone-1 { background: #f7f8fb; }
+  .metric-tone-2 { background: #f9f8f3; }
+  .metric-tone-3 { background: #f4f9f4; }
+  .metric-tone-4 { background: #f6f6f6; }
+
+  .chart-card {
+    border: 1px solid #e8e8e8;
+    border-radius: 16px;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.05);
+    background: #fff;
+    height: 100%;
+    padding: 1.15rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .chart-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.09);
+  }
+
+  .chart-title {
+    font-size: 1.03rem;
+    font-weight: 800;
+    color: #222;
+    margin-bottom: 0.85rem;
+  }
+
+  .chart-canvas-wrap {
+    position: relative;
+    min-height: 335px;
+    display: flex;
+    align-items: center;
+  }
+
+  .charts-section {
+    margin-top: 0.35rem;
+  }
+
+  @media (min-width: 1200px) {
+    .stats-section {
+      margin-bottom: 2.35rem;
+    }
+
+    .chart-canvas-wrap {
+      min-height: 350px;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
+<div class="py-4 py-lg-5 analytics-shell">
+  <div class="mb-4 mb-lg-5">
+    <h1 class="analytics-title">Dashboard</h1>
+    <p class="analytics-subtitle">Overview of platform performance.</p>
+  </div>
 
-  <!-- SUMMARY CARDS -->
-  <div class="row g-3">
-    <div class="col-md-3 col-6">
-      <div class="card shadow text-center p-3 bg-primary text-white">
-        <h4>{{ total_events }}</h4>
-        <p>Events</p>
+  <div class="row g-3 g-lg-4 stats-section">
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card metric-tone-1">
+        <div class="metric-icon text-primary"><i class="fas fa-calendar-alt"></i></div>
+        <div class="metric-value">{{ total_events }}</div>
+        <p class="metric-label">Total Events</p>
       </div>
     </div>
 
-    <div class="col-md-3 col-6">
-      <div class="card shadow text-center p-3 bg-warning text-dark">
-        <h4>{{ total_minted }}</h4>
-        <p>Total Tickets Minted</p>
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card metric-tone-2">
+        <div class="metric-icon text-warning"><i class="fas fa-ticket-alt"></i></div>
+        <div class="metric-value">{{ total_minted }}</div>
+        <p class="metric-label">Total Tickets Minted</p>
       </div>
     </div>
 
-    <div class="col-md-3 col-6">
-      <div class="card shadow text-center p-3 bg-success text-white">
-        <h4>{{ total_sold }}</h4>
-        <p>Tickets Sold</p>
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card metric-tone-3">
+        <div class="metric-icon text-success"><i class="fas fa-shopping-cart"></i></div>
+        <div class="metric-value">{{ total_sold }}</div>
+        <p class="metric-label">Tickets Sold</p>
       </div>
     </div>
 
-    <div class="col-md-3 col-6">
-      <div class="card shadow text-center p-3 bg-dark text-white">
-        <h4>{{ total_eth_earned }} ETH</h4>
-        <p>Total Revenue (ETH)</p>
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card metric-tone-4">
+        <div class="metric-icon text-secondary"><i class="fas fa-coins"></i></div>
+        <div class="metric-value">{{ total_eth_earned }} ETH</div>
+        <p class="metric-label">Total Revenue</p>
       </div>
     </div>
   </div>
 
-  <hr class="my-4">
-
-  <!-- CHARTS SIDE BY SIDE -->
-  <div class="row g-4">
-
-    <!-- PIE CHART -->
-    <div class="col-lg-6 col-md-12">
-      <div class="card shadow h-100">
-        <div class="card-header bg-info text-white">
-          <h5 class="mb-0">Tickets Sold (Distribution)</h5>
-        </div>
-        <div class="card-body">
+  <div class="row g-4 charts-section">
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h5 class="chart-title">Tickets Sold Distribution</h5>
+        <div class="chart-canvas-wrap">
           <canvas id="ticketsPieChart"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- BAR CHART -->
-    <div class="col-lg-6 col-md-12">
-      <div class="card shadow h-100">
-        <div class="card-header bg-secondary text-white">
-          <h5 class="mb-0">ETH Earned Per Event</h5>
-        </div>
-        <div class="card-body">
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h5 class="chart-title">Revenue Per Event</h5>
+        <div class="chart-canvas-wrap">
           <canvas id="ethChart"></canvas>
         </div>
       </div>
     </div>
-
   </div>
-
 </div>
 
 <!-- Chart.js CDN -->
