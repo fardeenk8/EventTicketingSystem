@@ -1,97 +1,101 @@
-# 🎟️ Decentralized Event Ticketing System (DApp)
+# 🎟️ Decentralized Event Ticketing System DApp
 
-A blockchain-based event ticketing platform designed to eliminate fraud, prevent duplication, and enable secure ticket ownership using NFTs.
+A blockchain-based event ticketing platform designed to reduce ticket fraud, prevent duplication, and provide secure ticket ownership using NFTs.
 
 ---
 
 ## 📌 Overview
 
-This project is a **Decentralized Application (DApp)** that allows event organizers to create events and users to securely purchase, verify, and manage tickets on the blockchain.
+This project is a Decentralized Application, also known as a DApp, that allows event organizers to create events and allows users to purchase, manage, resell, auction, and verify event tickets securely using blockchain technology.
 
-Each ticket is minted as an NFT, ensuring:
-- Uniqueness
-- Ownership transparency
-- Tamper-proof validation
+Each ticket is minted as an NFT, which makes every ticket unique and traceable. This helps prevent duplicate tickets, fake tickets, and unauthorized ticket resale.
 
-The platform also introduces advanced features such as **dynamic pricing** and **auction-based ticket allocation**, making it more aligned with real-world ticketing systems.
+The system uses Django for the web application, Solidity for the smart contract, Ganache as the local blockchain, and MetaMask for wallet-based user transactions.
 
 ---
 
 ## 🚀 Key Features
 
 ### 🎫 NFT-Based Ticketing
-- Each ticket is represented as an ERC-721 NFT
-- Ensures uniqueness and prevents duplication
-- Ownership securely stored on the blockchain
 
----
+- Each ticket is represented as an ERC-721 NFT.
+- Every ticket has a unique token ID.
+- Ticket ownership is stored on the blockchain.
+- Helps prevent fake and duplicate tickets.
 
-### 🛒 Ticket Purchase & Ownership
-- Users can buy tickets using MetaMask
-- Tickets are linked to wallet addresses
-- Transparent ownership tracking
+### 🛒 Ticket Purchase and Ownership
 
----
+- Users can purchase tickets using MetaMask.
+- Purchased tickets are linked to the user's wallet address.
+- Ownership can be verified through blockchain records.
 
 ### 🔁 Ticket Resale Marketplace
-- Users can resell tickets securely
-- Ownership transfer handled via smart contracts
-- Prevents fraud in secondary markets
 
----
-
-### 📈 Dynamic Pricing System
-- Ticket prices increase based on demand
-- Early buyers get lower prices
-- Late buyers pay higher prices
-- Simulates real-world ticket pricing behavior
-
----
+- Users can resell tickets securely.
+- Ticket ownership is transferred through smart contract logic.
+- Helps make secondary ticket sales more transparent.
 
 ### 🔨 Auction System
-- High-demand tickets can be auctioned
-- Users place bids on tickets
-- Highest bidder wins
-- Transparent and decentralized bidding process
 
----
+- Users can place bids on tickets.
+- High-demand tickets can be sold through auctions.
+- The highest bidder can receive the ticket based on auction logic.
 
-### ✅ Ticket Verification & Redemption
-- QR code or blockchain-based validation
-- Prevents ticket reuse
-- Ensures authenticity at entry points
+### ✅ Ticket Verification
 
----
+- Tickets can be verified using QR codes.
+- Admin can scan tickets at event entry.
+- The system helps prevent ticket reuse and invalid ticket entry.
 
 ### 🛠 Admin Dashboard
-- Create and manage events
-- Monitor ticket sales and usage
-- Manage users and transactions
+
+- Admin can create and manage events.
+- Admin can view users and ticket details.
+- Admin can verify tickets using the QR scanner.
+- Admin can manage refund requests.
 
 ---
 
 ## 🏗️ Tech Stack
 
-### 🔗 Blockchain
+### Blockchain
+
 - Solidity
-- Ganache (Local Ethereum Network)
-- MetaMask (Wallet Integration)
+- ERC-721 NFT Standard
+- Ganache Local Blockchain
+- MetaMask Wallet
+- Web3.py
 
-### 💻 Backend
-- Django (Python)
+### Backend
 
-### 🌐 Frontend
-- HTML, CSS, JavaScript (Django Templates)
+- Python
+- Django
+- SQLite
+
+### Frontend
+
+- HTML
+- CSS
+- JavaScript
+- Bootstrap
+- Django Templates
 
 ---
 
 ## 📂 Project Structure
-Backend/ # Django core configuration
-Users/ # User-related logic
-Admins/ # Admin panel logic
-templates/ # HTML templates (UI)
-static/ # CSS, JS, assets
-smartcontract/ # Solidity contracts
+
+```text
+EventTicketingSystem/
+│
+├── Admins/                  # Admin-side views, models, and logic
+├── Backend/                 # Django project settings and main URLs
+├── Users/                   # User-side views, models, and logic
+├── smartcontract/           # Solidity contract and deployment scripts
+├── static/                  # CSS, JavaScript, and image assets
+├── templates/               # HTML templates
+├── manage.py                # Django management file
+├── Readme                   # Project documentation
+└── .gitignore               # Git ignored files
 
 ---
 
