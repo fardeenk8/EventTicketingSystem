@@ -4,112 +4,264 @@
 {% block extra_css %}
 <style>
   .analytics-shell {
-    max-width: 1240px;
+    max-width: 1280px;
     margin: 0 auto;
   }
 
+  .dashboard-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: 2rem;
+    margin-bottom: 1.8rem;
+    background:
+      radial-gradient(circle at 12% 20%, rgba(37, 99, 235, 0.22), transparent 32%),
+      radial-gradient(circle at 90% 15%, rgba(16, 185, 129, 0.18), transparent 30%),
+      linear-gradient(135deg, #0f172a, #1e293b);
+    color: #ffffff;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+  }
+
+  .dashboard-hero::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    bottom: -80px;
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .dashboard-hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
   .analytics-title {
-    font-size: clamp(2rem, 3.3vw, 2.8rem);
-    font-weight: 800;
-    color: #111;
-    margin-bottom: 0.35rem;
+    font-size: clamp(2rem, 3.3vw, 3rem);
+    font-weight: 900;
+    color: #ffffff !important;
+    margin-bottom: 0.45rem;
+    letter-spacing: -0.055em;
   }
 
   .analytics-subtitle {
-    color: #666;
+    color: rgba(255, 255, 255, 0.78) !important;
     margin: 0;
+    max-width: 720px;
+  }
+
+  .hero-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+  }
+
+  .hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    padding: 0.48rem 0.85rem;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    font-weight: 700;
+    font-size: 0.88rem;
   }
 
   .stats-section {
-    padding-bottom: 0.8rem;
-    border-bottom: 1px solid #e9e9e9;
-    margin-bottom: 2rem;
+    margin-bottom: 1.8rem;
   }
 
   .metric-card {
-    border: 1px solid #e8e8e8;
-    border-radius: 14px;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
-    padding: 1.15rem 1rem;
-    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    padding: 1.35rem;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
   }
 
   .metric-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 28px 65px rgba(15, 23, 42, 0.14);
   }
 
-  .metric-card .metric-icon {
-    font-size: 1.2rem;
-    margin-bottom: 0.4rem;
+  .metric-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), transparent 58%);
+    pointer-events: none;
+  }
+
+  .metric-card-inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  .metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .metric-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .metric-icon.blue {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .metric-icon.orange {
+    background: #fff7ed;
+    color: #ea580c;
+  }
+
+  .metric-icon.green {
+    background: #ecfdf5;
+    color: #16a34a;
+  }
+
+  .metric-icon.purple {
+    background: #f5f3ff;
+    color: #7c3aed;
   }
 
   .metric-value {
-    font-size: clamp(1.55rem, 2.8vw, 2.15rem);
-    font-weight: 800;
-    color: #111;
+    font-size: clamp(1.7rem, 3vw, 2.35rem);
+    font-weight: 900;
+    color: #0f172a;
     margin-bottom: 0.15rem;
-    line-height: 1.15;
-    letter-spacing: 0.01em;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
   }
 
   .metric-label {
     margin: 0;
-    color: #5f5f5f;
+    color: #64748b;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
-  .metric-tone-1 { background: #f7f8fb; }
-  .metric-tone-2 { background: #f9f8f3; }
-  .metric-tone-3 { background: #f4f9f4; }
-  .metric-tone-4 { background: #f6f6f6; }
+  .metric-note {
+    margin-top: 0.8rem;
+    color: #64748b;
+    font-size: 0.88rem;
+  }
 
   .chart-card {
-    border: 1px solid #e8e8e8;
-    border-radius: 16px;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.05);
-    background: #fff;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 24px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.92);
     height: 100%;
-    padding: 1.15rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 1.35rem;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
   }
 
   .chart-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.09);
+    transform: translateY(-4px);
+    box-shadow: 0 28px 65px rgba(15, 23, 42, 0.13);
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
   }
 
   .chart-title {
-    font-size: 1.03rem;
+    font-size: 1.08rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+  }
+
+  .chart-subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .chart-badge {
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    background: #eff6ff;
+    color: #1d4ed8;
     font-weight: 800;
-    color: #222;
-    margin-bottom: 0.85rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
   }
 
   .chart-canvas-wrap {
     position: relative;
-    min-height: 335px;
+    min-height: 345px;
     display: flex;
     align-items: center;
   }
 
-  .charts-section {
-    margin-top: 0.35rem;
+  .quick-panel {
+    margin-top: 1.8rem;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    padding: 1.35rem;
   }
 
-  @media (min-width: 1200px) {
-    .stats-section {
-      margin-bottom: 2.35rem;
+  .quick-panel-title {
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 0.2rem;
+  }
+
+  .quick-panel-subtitle {
+    color: #64748b;
+    margin-bottom: 1rem;
+  }
+
+  .quick-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-hero {
+      padding: 1.45rem;
+    }
+
+    .chart-header {
+      flex-direction: column;
     }
 
     .chart-canvas-wrap {
-      min-height: 350px;
+      min-height: 285px;
+    }
+
+    .quick-actions .btn {
+      width: 100%;
     }
   }
 </style>
@@ -117,49 +269,112 @@
 
 {% block content %}
 <div class="py-4 py-lg-5 analytics-shell">
-  <div class="mb-4 mb-lg-5">
-    <h1 class="analytics-title">Dashboard</h1>
-    <p class="analytics-subtitle">Overview of platform performance.</p>
-  </div>
+
+  <section class="dashboard-hero">
+    <div class="dashboard-hero-content">
+      <h1 class="analytics-title">Admin Dashboard</h1>
+      <p class="analytics-subtitle">
+        Track event performance, NFT ticket minting, ticket sales, and blockchain-based revenue from one clean analytics view.
+      </p>
+
+      <div class="hero-chip-row">
+        <span class="hero-chip">
+          <i class="fas fa-shield-halved"></i> NFT Ticketing
+        </span>
+        <span class="hero-chip">
+          <i class="fas fa-wallet"></i> MetaMask Payments
+        </span>
+        <span class="hero-chip">
+          <i class="fas fa-qrcode"></i> QR Verification
+        </span>
+        <span class="hero-chip">
+          <i class="fas fa-chart-line"></i> Revenue Insights
+        </span>
+      </div>
+    </div>
+  </section>
 
   <div class="row g-3 g-lg-4 stats-section">
     <div class="col-md-6 col-xl-3">
-      <div class="metric-card metric-tone-1">
-        <div class="metric-icon text-primary"><i class="fas fa-calendar-alt"></i></div>
-        <div class="metric-value">{{ total_events }}</div>
-        <p class="metric-label">Total Events</p>
+      <div class="metric-card">
+        <div class="metric-card-inner">
+          <div class="metric-top">
+            <div>
+              <div class="metric-value">{{ total_events }}</div>
+              <p class="metric-label">Total Events</p>
+            </div>
+            <div class="metric-icon blue">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+          </div>
+          <div class="metric-note">Events created by admin.</div>
+        </div>
       </div>
     </div>
 
     <div class="col-md-6 col-xl-3">
-      <div class="metric-card metric-tone-2">
-        <div class="metric-icon text-warning"><i class="fas fa-ticket-alt"></i></div>
-        <div class="metric-value">{{ total_minted }}</div>
-        <p class="metric-label">Total Tickets Minted</p>
+      <div class="metric-card">
+        <div class="metric-card-inner">
+          <div class="metric-top">
+            <div>
+              <div class="metric-value">{{ total_minted }}</div>
+              <p class="metric-label">Tickets Minted</p>
+            </div>
+            <div class="metric-icon orange">
+              <i class="fas fa-ticket-alt"></i>
+            </div>
+          </div>
+          <div class="metric-note">NFT tickets generated.</div>
+        </div>
       </div>
     </div>
 
     <div class="col-md-6 col-xl-3">
-      <div class="metric-card metric-tone-3">
-        <div class="metric-icon text-success"><i class="fas fa-shopping-cart"></i></div>
-        <div class="metric-value">{{ total_sold }}</div>
-        <p class="metric-label">Tickets Sold</p>
+      <div class="metric-card">
+        <div class="metric-card-inner">
+          <div class="metric-top">
+            <div>
+              <div class="metric-value">{{ total_sold }}</div>
+              <p class="metric-label">Tickets Sold</p>
+            </div>
+            <div class="metric-icon green">
+              <i class="fas fa-cart-shopping"></i>
+            </div>
+          </div>
+          <div class="metric-note">Purchased by users.</div>
+        </div>
       </div>
     </div>
 
     <div class="col-md-6 col-xl-3">
-      <div class="metric-card metric-tone-4">
-        <div class="metric-icon text-secondary"><i class="fas fa-coins"></i></div>
-        <div class="metric-value">{{ total_eth_earned }} ETH</div>
-        <p class="metric-label">Total Revenue</p>
+      <div class="metric-card">
+        <div class="metric-card-inner">
+          <div class="metric-top">
+            <div>
+              <div class="metric-value">{{ total_eth_earned }} ETH</div>
+              <p class="metric-label">Total Revenue</p>
+            </div>
+            <div class="metric-icon purple">
+              <i class="fab fa-ethereum"></i>
+            </div>
+          </div>
+          <div class="metric-note">Blockchain payment total.</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="row g-4 charts-section">
+  <div class="row g-4">
     <div class="col-lg-6">
       <div class="chart-card">
-        <h5 class="chart-title">Tickets Sold Distribution</h5>
+        <div class="chart-header">
+          <div>
+            <h5 class="chart-title">Tickets Sold Distribution</h5>
+            <p class="chart-subtitle">Visual breakdown of ticket sales across events.</p>
+          </div>
+          <span class="chart-badge">Sales</span>
+        </div>
+
         <div class="chart-canvas-wrap">
           <canvas id="ticketsPieChart"></canvas>
         </div>
@@ -168,43 +383,89 @@
 
     <div class="col-lg-6">
       <div class="chart-card">
-        <h5 class="chart-title">Revenue Per Event</h5>
+        <div class="chart-header">
+          <div>
+            <h5 class="chart-title">Revenue Per Event</h5>
+            <p class="chart-subtitle">ETH earned from each event.</p>
+          </div>
+          <span class="chart-badge">ETH</span>
+        </div>
+
         <div class="chart-canvas-wrap">
           <canvas id="ethChart"></canvas>
         </div>
       </div>
     </div>
   </div>
+
+  <div class="quick-panel">
+    <h5 class="quick-panel-title">Quick Actions</h5>
+    <p class="quick-panel-subtitle">Use these shortcuts during your project demo.</p>
+
+    <div class="quick-actions">
+      <a href="{% url 'create_event' %}" class="btn btn-primary">
+        <i class="fas fa-calendar-plus me-1"></i> Create Event
+      </a>
+
+      <a href="{% url 'event_list' %}" class="btn btn-outline-primary">
+        <i class="fas fa-calendar me-1"></i> Manage Events
+      </a>
+
+      <a href="{% url 'admin_qr_scanner' %}" class="btn btn-outline-primary">
+        <i class="fas fa-qrcode me-1"></i> Scan Ticket
+      </a>
+
+      <a href="{% url 'refund_requests' %}" class="btn btn-outline-primary">
+        <i class="fas fa-rotate-left me-1"></i> Refund Requests
+      </a>
+    </div>
+  </div>
+
 </div>
 
-<!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-  // PIE CHART: Tickets Distribution
   const ticketsPieCtx = document.getElementById('ticketsPieChart');
+
   new Chart(ticketsPieCtx, {
-    type: 'pie',
+    type: 'doughnut',
     data: {
       labels: {{ dates|safe }},
       datasets: [{
         data: {{ quantities|safe }},
         backgroundColor: [
-          '#0dcaf0', '#6610f2', '#d63384', '#fd7e14',
-          '#198754', '#ffc107', '#dc3545', '#20c997'
+          '#2563eb', '#7c3aed', '#db2777', '#f97316',
+          '#16a34a', '#eab308', '#dc2626', '#0f766e'
         ],
-        borderColor: '#222',
-        borderWidth: 1
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 8
       }]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            usePointStyle: true,
+            boxWidth: 8,
+            color: '#334155',
+            font: {
+              family: 'Inter',
+              weight: '600'
+            }
+          }
+        }
+      }
     }
   });
 
-  // BAR CHART: ETH Earned Per Event
   const ethCtx = document.getElementById('ethChart');
+
   new Chart(ethCtx, {
     type: 'bar',
     data: {
@@ -212,12 +473,52 @@
       datasets: [{
         label: 'ETH Earned',
         data: {{ eth_values|safe }},
-        backgroundColor: '#28a745'
+        backgroundColor: '#2563eb',
+        borderRadius: 12,
+        maxBarThickness: 48
       }]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: '#64748b',
+            font: {
+              family: 'Inter',
+              weight: '600'
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: '#e2e8f0'
+          },
+          ticks: {
+            color: '#64748b',
+            font: {
+              family: 'Inter',
+              weight: '600'
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#334155',
+            font: {
+              family: 'Inter',
+              weight: '700'
+            }
+          }
+        }
+      }
     }
   });
 </script>

@@ -4,74 +4,124 @@
 {% block content %}
 <div class="container mt-4">
 
-  <div class="dark-card shadow-lg p-0">
+  <div class="page-heading">
+    <h2>{{ event.title }}</h2>
+    <p>Review event details, connect MetaMask, and purchase NFT-based tickets securely.</p>
+  </div>
+
+  <div class="dark-card shadow-lg p-0 event-detail-wrapper">
 
     <div class="row g-0">
 
       <!-- Event Poster -->
-      <div class="col-md-4">
-        <img src="{{ event.poster.url }}" class="img-fluid rounded-start w-100"
-             style="height:100%; object-fit:cover;">
+      <div class="col-lg-5 col-md-5">
+        <div class="event-detail-poster-wrap">
+          <img src="{{ event.poster.url }}" class="event-detail-poster" alt="{{ event.title }}">
+        </div>
       </div>
 
       <!-- Event Details -->
-      <div class="col-md-8">
-        <div class="p-4">
+      <div class="col-lg-7 col-md-7">
+        <div class="p-4 p-lg-5">
 
-          <h3 class="text-info fw-bold">{{ event.title }}</h3>
-
-          <p class="text-secondary small mb-2">
-            {{ event.date }} • {{ event.time }} • {{ event.venue }}
-          </p>
-
-          <p class="text-light mb-3">{{ event.description }}</p>
-
-          <p class="text-info mb-1">
-            <strong>Price per ticket:</strong> {{ event.price }} ETH
-          </p>
-
-          <div class="dark-card mt-3 mb-3 p-3">
-            <h6 class="text-info fw-bold mb-2">
-              <i class="fas fa-chart-line"></i> Dynamic Pricing
-            </h6>
-            <p class="text-light mb-1"><strong>Base Price:</strong> <span id="basePrice">-</span> ETH</p>
-            <p class="text-light mb-1"><strong>Current Price:</strong> <span id="currentPrice">-</span> ETH</p>
-            <p class="text-light mb-0"><strong>Tickets Sold:</strong> <span id="ticketsSold">-</span></p>
-            <p id="priceSoonMsg" class="text-warning small mt-2 mb-0 d-none">
-              Price increasing soon as more tickets are sold.
-            </p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <span class="event-badge">
+              <i class="fas fa-calendar-alt me-1"></i> {{ event.date }}
+            </span>
+            <span class="event-badge">
+              <i class="fas fa-clock me-1"></i> {{ event.time }}
+            </span>
+            <span class="event-badge">
+              <i class="fas fa-location-dot me-1"></i> {{ event.venue }}
+            </span>
           </div>
 
-          <p class="text-info mb-3">
-            <strong>Available:</strong> {{ remaining }}
-          </p>
+          <h3 class="fw-bold mb-3">{{ event.title }}</h3>
+
+          <p class="mb-4">{{ event.description }}</p>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <div class="stat-card h-100">
+                <div class="stat-label">Price per ticket</div>
+                <div class="mt-2 event-price">
+                  <i class="fab fa-ethereum"></i> {{ event.price }} ETH
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="stat-card h-100">
+                <div class="stat-label">Available tickets</div>
+                <div class="stat-value mt-2">{{ remaining }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Pricing -->
+          <div class="dark-card mt-3 mb-4 p-3">
+            <h6 class="fw-bold mb-3">
+              <i class="fas fa-chart-line me-1"></i> Dynamic Pricing
+            </h6>
+
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="stat-label">Base Price</div>
+                <strong><span id="basePrice">-</span> ETH</strong>
+              </div>
+
+              <div class="col-md-4">
+                <div class="stat-label">Current Price</div>
+                <strong><span id="currentPrice">-</span> ETH</strong>
+              </div>
+
+              <div class="col-md-4">
+                <div class="stat-label">Tickets Sold</div>
+                <strong><span id="ticketsSold">-</span></strong>
+              </div>
+            </div>
+
+            <div id="priceSoonMsg" class="transaction-message warning mt-3 d-none">
+              <i class="fas fa-triangle-exclamation me-1"></i>
+              Price may increase as more tickets are sold.
+            </div>
+          </div>
 
           <!-- Quantity Selector -->
           <div class="mb-3">
-            <label class="text-info fw-bold mb-1">Quantity</label>
+            <label class="fw-bold mb-2">Quantity</label>
             <input type="number" id="qty"
-                   class="form-control bg-dark text-light border-secondary w-25"
+                   class="form-control"
                    min="1" max="{{ remaining }}" value="1">
+            <small>Maximum available tickets: {{ remaining }}</small>
           </div>
 
           <!-- Total Price -->
-          <p class="text-light mt-2">
-            <strong>Total Price:</strong>
-            <span id="totalPrice">{{ event.price }}</span> ETH
-          </p>
-
-          <!-- Buy Button -->
-          <button id="buyBtn" class="btn btn-info text-black fw-bold px-4 py-2 mt-2">
-            <i class="fas fa-ticket-alt"></i> Buy Ticket(s)
-          </button>
+          <div class="wallet-box mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div>
+                <div class="stat-label">Total Price</div>
+                <h4 class="mb-0"><span id="totalPrice">{{ event.price }}</span> ETH</h4>
+              </div>
+              <div class="event-badge">
+                NFT Ticket Purchase
+              </div>
+            </div>
+          </div>
 
           <!-- Status Message -->
-          <p id="buyStatus" class="mt-3"></p>
+          <div id="buyStatus" class="transaction-message"></div>
 
-          <!-- Back -->
-          <a href="{% url 'browse_events' %}" class="btn btn-link text-info mt-3">
-            <i class="fas fa-arrow-left"></i> Back
-          </a>
+          <!-- Buy Button -->
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <button id="buyBtn" class="btn btn-primary px-4 py-2">
+              <i class="fas fa-ticket-alt me-1"></i> Buy Ticket(s)
+            </button>
+
+            <a href="{% url 'browse_events' %}" class="btn btn-outline-primary px-4 py-2">
+              <i class="fas fa-arrow-left me-1"></i> Back to Events
+            </a>
+          </div>
 
         </div>
       </div>
@@ -81,6 +131,34 @@
   </div>
 
 </div>
+
+<style>
+  .event-detail-wrapper {
+    overflow: hidden;
+  }
+
+  .event-detail-poster-wrap {
+    height: 100%;
+    min-height: 520px;
+    background: #f3f4f6;
+  }
+
+  .event-detail-poster {
+    width: 100%;
+    height: 100%;
+    min-height: 520px;
+    object-fit: cover;
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    .event-detail-poster-wrap,
+    .event-detail-poster {
+      min-height: 280px;
+      height: 280px;
+    }
+  }
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 
@@ -97,21 +175,51 @@
     let price = parseFloat("{{ event.price }}");
     const available = parseInt("{{ remaining }}");
 
+    function showTransactionMessage(type, message) {
+        statusBox.className = "transaction-message show " + type;
+        statusBox.innerHTML = message;
+    }
+
+    function clearTransactionMessage() {
+        statusBox.className = "transaction-message";
+        statusBox.innerHTML = "";
+    }
+
+    function setBuyLoading(isLoading, buttonText = "Buy Ticket(s)") {
+        buyBtn.disabled = isLoading;
+        if (isLoading) {
+            buyBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${buttonText}`;
+        } else {
+            buyBtn.innerHTML = `<i class="fas fa-ticket-alt me-1"></i> ${buttonText}`;
+        }
+    }
+
     function refreshTotal() {
         let q = parseInt(qty.value || "1");
+
+        if (available <= 0) {
+            qty.value = 0;
+            totalBox.innerHTML = "0.000000";
+            buyBtn.disabled = true;
+            showTransactionMessage("warning", "<i class='fas fa-circle-info me-1'></i> Tickets are currently sold out for this event.");
+            return;
+        }
+
         if (q > available) {
             q = available;
             qty.value = available;
+            showTransactionMessage("warning", `<i class='fas fa-triangle-exclamation me-1'></i> Only ${available} ticket(s) are available.`);
         }
-        if (q < 1) q = 1;
+
+        if (q < 1) {
+            q = 1;
+            qty.value = 1;
+        }
+
         totalBox.innerHTML = (q * price).toFixed(6);
     }
 
     qty.addEventListener("input", () => {
-        const q = parseInt(qty.value || "1");
-        if (q > available) {
-            alert(`Only ${available} tickets available!`);
-        }
         refreshTotal();
     });
 
@@ -119,6 +227,7 @@
         try {
             const res = await fetch("{% url 'event_pricing' event.id %}");
             const data = await res.json();
+
             if (data.status !== "success") return;
 
             const base = parseFloat(data.base_price || 0);
@@ -135,51 +244,118 @@
 
             if (inc > 0) {
                 priceSoonMsg.classList.remove("d-none");
+                priceSoonMsg.classList.add("show");
             } else {
                 priceSoonMsg.classList.add("d-none");
+                priceSoonMsg.classList.remove("show");
             }
         } catch (e) {
-            // Keep existing UI value if pricing API is not reachable.
+            console.warn("Pricing API not reachable. Using default event price.");
+        }
+    }
+
+    async function checkGanacheNetwork(provider) {
+        try {
+            const network = await provider.getNetwork();
+            const chainId = Number(network.chainId);
+
+            if (chainId !== 1337 && chainId !== 5777) {
+                showTransactionMessage(
+                    "warning",
+                    "<i class='fas fa-network-wired me-1'></i> Wrong MetaMask network. Please switch to Ganache Local network."
+                );
+                return false;
+            }
+
+            return true;
+        } catch (e) {
+            showTransactionMessage(
+                "error",
+                "<i class='fas fa-circle-xmark me-1'></i> Could not verify MetaMask network. Please check MetaMask and try again."
+            );
+            return false;
         }
     }
 
     async function buyTicket() {
+        clearTransactionMessage();
+
+        if (available <= 0) {
+            showTransactionMessage("warning", "<i class='fas fa-circle-info me-1'></i> This event is sold out.");
+            return;
+        }
 
         if (!window.ethereum) {
-            alert("MetaMask not installed!");
+            showTransactionMessage(
+                "error",
+                "<i class='fas fa-wallet me-1'></i> MetaMask is not installed. Please install MetaMask and refresh this page."
+            );
             return;
         }
 
         const contractAddress = "{{ contract_address }}";
+
         if (!contractAddress) {
-            statusBox.innerHTML = "<span class='text-danger'>Contract address not configured. Ask admin to deploy the contract.</span>";
+            showTransactionMessage(
+                "error",
+                "<i class='fas fa-circle-xmark me-1'></i> Contract address is not configured. Please deploy the smart contract first."
+            );
             return;
         }
 
         const quantity = parseInt(qty.value);
+
         if (!quantity || quantity < 1) {
-            statusBox.innerHTML = "<span class='text-danger'>Please select a valid quantity.</span>";
+            showTransactionMessage(
+                "warning",
+                "<i class='fas fa-triangle-exclamation me-1'></i> Please select a valid ticket quantity."
+            );
             return;
         }
 
-        statusBox.innerHTML = "Preparing transaction...";
-        buyBtn.disabled = true;
+        if (quantity > available) {
+            showTransactionMessage(
+                "warning",
+                `<i class='fas fa-triangle-exclamation me-1'></i> Only ${available} ticket(s) are available.`
+            );
+            return;
+        }
+
+        setBuyLoading(true, "Preparing transaction...");
+        showTransactionMessage(
+            "info",
+            "<i class='fas fa-circle-info me-1'></i> Preparing MetaMask transaction. Please wait..."
+        );
 
         let tx_hash = "";
+
         try {
             const provider = new ethers.BrowserProvider(window.ethereum);
+
+            const networkOk = await checkGanacheNetwork(provider);
+            if (!networkOk) {
+                setBuyLoading(false);
+                return;
+            }
+
             await provider.send("eth_requestAccounts", []);
+
             const signer = await provider.getSigner();
             const from = await signer.getAddress();
 
+            showTransactionMessage(
+                "success",
+                `<i class='fas fa-wallet me-1'></i> Wallet connected: <span class="wallet-address">${from}</span>`
+            );
+
             let totalWei;
-            // Try dynamic-pricing contract functions first.
-            // If current deployed contract doesn't expose them, fall back to fixed UI price.
+
             try {
                 const pricingAbi = [
                     "function getCurrentPrice(uint256 eventId) view returns (uint256)",
                     "function eventPricing(uint256 eventId) view returns (uint256 basePrice, uint256 priceIncrement, uint256 ticketsSold)"
                 ];
+
                 const pricingContract = new ethers.Contract(contractAddress, pricingAbi, provider);
                 const currentPriceWei = await pricingContract.getCurrentPrice({{ event.id }});
                 const pricingData = await pricingContract.eventPricing({{ event.id }});
@@ -193,28 +369,66 @@
                 totalWei = ethers.parseEther(fixedTotalEth);
             }
 
-            statusBox.innerHTML = "Processing MetaMask payment...";
+            setBuyLoading(true, "Waiting for MetaMask...");
+            showTransactionMessage(
+                "info",
+                "<i class='fas fa-wallet me-1'></i> Confirm the payment in MetaMask."
+            );
+
             const tx = await signer.sendTransaction({
                 to: "{{ ADMIN_ADDRESS }}",
                 value: totalWei
             });
-            statusBox.innerHTML = "Transaction pending confirmation...";
+
+            showTransactionMessage(
+                "info",
+                `<i class='fas fa-spinner fa-spin me-1'></i> Transaction submitted. Waiting for confirmation.<br>
+                 <small>Transaction Hash: <span class="wallet-address">${tx.hash}</span></small>`
+            );
+
             const receipt = await tx.wait();
             tx_hash = receipt.hash;
+
         } catch (err) {
             const message = (err && (err.shortMessage || err.message)) ? (err.shortMessage || err.message) : "";
-            if (err && (err.code === "INSUFFICIENT_FUNDS" || message.toLowerCase().includes("insufficient funds"))) {
-                statusBox.innerHTML = "<span class='text-danger'>Insufficient funds for this purchase.</span>";
+            const lowerMessage = message.toLowerCase();
+
+            if (err && (err.code === "INSUFFICIENT_FUNDS" || lowerMessage.includes("insufficient funds"))) {
+                showTransactionMessage(
+                    "error",
+                    "<i class='fas fa-circle-xmark me-1'></i> Insufficient funds in your MetaMask wallet."
+                );
             } else if (err && err.code === 4001) {
-                statusBox.innerHTML = "<span class='text-danger'>Transaction rejected in MetaMask.</span>";
+                showTransactionMessage(
+                    "warning",
+                    "<i class='fas fa-ban me-1'></i> Transaction was rejected in MetaMask."
+                );
+            } else if (lowerMessage.includes("user rejected")) {
+                showTransactionMessage(
+                    "warning",
+                    "<i class='fas fa-ban me-1'></i> Transaction was rejected by the user."
+                );
+            } else if (lowerMessage.includes("network")) {
+                showTransactionMessage(
+                    "error",
+                    "<i class='fas fa-network-wired me-1'></i> Network error. Please check that MetaMask is connected to Ganache."
+                );
             } else {
-                statusBox.innerHTML = "<span class='text-danger'>Transaction failed. Please try again.</span>";
+                showTransactionMessage(
+                    "error",
+                    `<i class='fas fa-circle-xmark me-1'></i> Transaction failed. Please try again.<br><small>${message}</small>`
+                );
             }
-            buyBtn.disabled = false;
+
+            setBuyLoading(false);
             return;
         }
 
-        statusBox.innerHTML = "Payment successful! Assigning tickets...";
+        setBuyLoading(true, "Assigning tickets...");
+        showTransactionMessage(
+            "info",
+            "<i class='fas fa-spinner fa-spin me-1'></i> Payment confirmed. Assigning ticket NFT(s) to your account..."
+        );
 
         fetch("{% url 'buy_ticket' event.id %}", {
             method: "POST",
@@ -230,23 +444,43 @@
         .then(res => res.json())
         .then(async (data) => {
             if (data.status === "success") {
-                statusBox.innerHTML = `<span class='text-success'>Tickets assigned! Token IDs: ${data.tokens.join(", ")}</span>`;
+                const tokens = data.tokens && data.tokens.length ? data.tokens.join(", ") : "Assigned";
+
+                showTransactionMessage(
+                    "success",
+                    `<i class='fas fa-circle-check me-1'></i> Ticket purchase successful!<br>
+                     <small>Token ID(s): <span class="wallet-address">${tokens}</span></small><br>
+                     <small>Transaction Hash: <span class="wallet-address">${tx_hash}</span></small>`
+                );
+
                 await loadPricing();
+
                 setTimeout(() => {
                     window.location.href = "{% url 'user_wallet' %}";
-                }, 1500);
+                }, 2200);
             } else {
-                statusBox.innerHTML = `<span class='text-danger'>${data.message}</span>`;
-                buyBtn.disabled = false;
+                showTransactionMessage(
+                    "error",
+                    `<i class='fas fa-circle-xmark me-1'></i> Payment was confirmed, but ticket assignment failed.<br>
+                     <small>${data.message || "Please contact admin with your transaction hash."}</small><br>
+                     <small>Transaction Hash: <span class="wallet-address">${tx_hash}</span></small>`
+                );
+                setBuyLoading(false);
             }
         })
         .catch(() => {
-            statusBox.innerHTML = "<span class='text-danger'>Server update failed after payment. Please contact admin with your transaction hash.</span>";
-            buyBtn.disabled = false;
+            showTransactionMessage(
+                "error",
+                `<i class='fas fa-circle-xmark me-1'></i> Server update failed after payment.<br>
+                 <small>Please contact admin with this transaction hash:</small><br>
+                 <small><span class="wallet-address">${tx_hash}</span></small>`
+            );
+            setBuyLoading(false);
         });
     }
 
     buyBtn.addEventListener("click", buyTicket);
+
     loadPricing();
     setInterval(loadPricing, 8000);
 </script>
