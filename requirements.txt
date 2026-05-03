@@ -1,0 +1,8 @@
+django
+django-jazzmin
+web3
+python-dotenv
+reportlab
+qrcode
+pillow
+py-solc-x
