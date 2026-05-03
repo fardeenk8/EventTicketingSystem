@@ -17,6 +17,15 @@ smartcontract/.env
 .DS_Store
 
 
+# Node / Hardhat (smartcontract)
+smartcontract/node_modules/
+
+# OS / Office lockfiles
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+~$*
+
 # Editors
 .vscode/
 .idea/
