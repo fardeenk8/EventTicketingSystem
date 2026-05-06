@@ -87,6 +87,41 @@
             </div>
           </div>
 
+          <!-- Promo code -->
+          <div class="mb-3">
+            <label class="fw-bold mb-2">Promo code (optional)</label>
+            <input type="text" id="promoCode" class="form-control" placeholder="EARLYBIRD" autocomplete="off">
+            <small class="text-secondary">Time-bound codes from organizers; referrals apply automatically on eligible purchases.</small>
+          </div>
+
+          <!-- Waitlist (sold out) -->
+          {% if sold_out and user.is_authenticated %}
+          <div class="dark-card p-3 mb-3 border border-warning border-opacity-50">
+            <h6 class="fw-bold mb-2"><i class="fas fa-hourglass-half me-1"></i> Smart waitlist</h6>
+            <p class="small text-secondary mb-2">
+              Join the queue. When a ticket is refunded, the next person gets a 10-minute payment window by email.
+            </p>
+            {% if waitlist_status == "waiting" %}
+              <p class="small mb-2">You are <strong>#{{ waitlist_position }}</strong> in line.</p>
+              <button type="button" id="leaveWaitlistBtn" class="btn btn-outline-secondary btn-sm">Leave waitlist</button>
+            {% elif waitlist_status == "offered" and waitlist_pay_path %}
+              <p class="small mb-2 text-success fw-bold">You have an active payment window — <a href="{{ waitlist_pay_path }}">complete checkout</a>.</p>
+            {% elif waitlist_status == "fulfilled" %}
+              <p class="small mb-0 text-secondary">You already completed a waitlist purchase for this event.</p>
+            {% elif waitlist_status == "missed" %}
+              <p class="small mb-2">You missed a previous window. You can join again.</p>
+              <button type="button" id="joinWaitlistBtn" class="btn btn-warning btn-sm">Join waitlist</button>
+            {% elif waitlist_status == "cancelled" %}
+              <button type="button" id="joinWaitlistBtn" class="btn btn-warning btn-sm">Re-join waitlist</button>
+            {% else %}
+              <button type="button" id="joinWaitlistBtn" class="btn btn-warning btn-sm">Join waitlist</button>
+            {% endif %}
+            <div id="waitlistStatus" class="small mt-2"></div>
+          </div>
+          {% elif sold_out %}
+          <div class="alert alert-secondary small mb-3">Sold out. <a href="{% url 'loginn' %}">Log in</a> to join the waitlist.</div>
+          {% endif %}
+
           <!-- Quantity Selector -->
           <div class="mb-3">
             <label class="fw-bold mb-2">Quantity</label>
@@ -174,6 +209,44 @@
 
     let price = parseFloat("{{ event.price }}");
     const available = parseInt("{{ remaining }}");
+    const checkoutQuoteEnabled = {{ checkout_quote_enabled|yesno:"true,false" }};
+    let lastQuote = null;
+
+    function debounce(fn, ms) {
+        let t;
+        return (...args) => {
+            clearTimeout(t);
+            t = setTimeout(() => fn(...args), ms);
+        };
+    }
+
+    async function refreshCheckoutQuote() {
+        if (!checkoutQuoteEnabled || available <= 0) return;
+        const q = parseInt(qty.value || "1");
+        const promoEl = document.getElementById("promoCode");
+        const promo = promoEl ? (promoEl.value || "").trim() : "";
+        try {
+            const res = await fetch("{% url 'checkout_quote' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    event_id: {{ event.id }},
+                    quantity: q,
+                    promo_code: promo
+                })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                lastQuote = data;
+                totalBox.innerHTML = parseFloat(data.total_eth).toFixed(6);
+            }
+        } catch (e) {
+            console.warn("checkout quote failed", e);
+        }
+    }
 
     function showTransactionMessage(type, message) {
         statusBox.className = "transaction-message show " + type;
@@ -216,12 +289,23 @@
             qty.value = 1;
         }
 
-        totalBox.innerHTML = (q * price).toFixed(6);
+        if (checkoutQuoteEnabled) {
+            refreshCheckoutQuote().catch(() => {
+                totalBox.innerHTML = (q * price).toFixed(6);
+            });
+        } else {
+            totalBox.innerHTML = (q * price).toFixed(6);
+        }
     }
 
     qty.addEventListener("input", () => {
         refreshTotal();
     });
+
+    const promoInput = document.getElementById("promoCode");
+    if (promoInput) {
+        promoInput.addEventListener("input", debounce(() => { refreshTotal(); }, 400));
+    }
 
     async function loadPricing() {
         try {
@@ -241,6 +325,9 @@
 
             price = current;
             refreshTotal();
+            if (checkoutQuoteEnabled) {
+                refreshCheckoutQuote().catch(() => {});
+            }
 
             if (inc > 0) {
                 priceSoonMsg.classList.remove("d-none");
@@ -321,6 +408,19 @@
             return;
         }
 
+        const promoVal = (document.getElementById("promoCode")?.value || "").trim();
+
+        if (checkoutQuoteEnabled) {
+            await refreshCheckoutQuote();
+            if (lastQuote && !lastQuote.can_buy) {
+                showTransactionMessage(
+                    "error",
+                    `<i class='fas fa-circle-xmark me-1'></i> Only ${lastQuote.available} ticket(s) left — adjust quantity or refresh.`
+                );
+                return;
+            }
+        }
+
         setBuyLoading(true, "Preparing transaction...");
         showTransactionMessage(
             "info",
@@ -350,23 +450,31 @@
 
             let totalWei;
 
-            try {
-                const pricingAbi = [
-                    "function getCurrentPrice(uint256 eventId) view returns (uint256)",
-                    "function eventPricing(uint256 eventId) view returns (uint256 basePrice, uint256 priceIncrement, uint256 ticketsSold)"
-                ];
+            const useQuoteWei = checkoutQuoteEnabled && lastQuote && (lastQuote.discount_percent > 0 || lastQuote.promo_matched);
 
-                const pricingContract = new ethers.Contract(contractAddress, pricingAbi, provider);
-                const currentPriceWei = await pricingContract.getCurrentPrice({{ event.id }});
-                const pricingData = await pricingContract.eventPricing({{ event.id }});
-                const incrementWei = pricingData.priceIncrement;
+            if (useQuoteWei) {
+                totalWei = ethers.parseEther(Number(lastQuote.total_eth).toFixed(8));
+            } else {
+                try {
+                    const pricingAbi = [
+                        "function getCurrentPrice(uint256 eventId) view returns (uint256)",
+                        "function eventPricing(uint256 eventId) view returns (uint256 basePrice, uint256 priceIncrement, uint256 ticketsSold)"
+                    ];
 
-                const q = BigInt(quantity);
-                const incrementalPart = incrementWei * ((q * (q - 1n)) / 2n);
-                totalWei = (currentPriceWei * q) + incrementalPart;
-            } catch (_) {
-                const fixedTotalEth = (quantity * price).toString();
-                totalWei = ethers.parseEther(fixedTotalEth);
+                    const pricingContract = new ethers.Contract(contractAddress, pricingAbi, provider);
+                    const currentPriceWei = await pricingContract.getCurrentPrice({{ event.id }});
+                    const pricingData = await pricingContract.eventPricing({{ event.id }});
+                    const incrementWei = pricingData.priceIncrement;
+
+                    const q = BigInt(quantity);
+                    const incrementalPart = incrementWei * ((q * (q - 1n)) / 2n);
+                    totalWei = (currentPriceWei * q) + incrementalPart;
+                } catch (_) {
+                    const fixedTotalEth = checkoutQuoteEnabled && lastQuote
+                        ? String(Number(lastQuote.total_eth).toFixed(8))
+                        : (quantity * price).toString();
+                    totalWei = ethers.parseEther(fixedTotalEth);
+                }
             }
 
             setBuyLoading(true, "Waiting for MetaMask...");
@@ -438,7 +546,8 @@
             },
             body: JSON.stringify({
                 quantity: quantity,
-                tx_hash: tx_hash
+                tx_hash: tx_hash,
+                promo_code: promoVal
             })
         })
         .then(res => res.json())
@@ -483,6 +592,79 @@
 
     loadPricing();
     setInterval(loadPricing, 8000);
+
+    {% if sold_out and user.is_authenticated %}
+    function setWaitlistStatus(message, kind = "muted") {
+        const el = document.getElementById("waitlistStatus");
+        if (!el) return;
+        const cls = {
+            success: "text-success",
+            error: "text-danger",
+            warning: "text-warning",
+            muted: "text-secondary",
+        };
+        el.className = `small mt-2 ${cls[kind] || cls.muted}`;
+        el.textContent = message || "";
+    }
+
+    async function postWaitlist(url, body) {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify(body)
+        });
+
+        let payload = null;
+        try {
+            payload = await res.json();
+        } catch (_) {
+            payload = { status: "error", message: "Unexpected server response." };
+        }
+
+        if (!res.ok && !payload.message) {
+            payload.message = "Request failed. Please refresh and try again.";
+        }
+        return payload;
+    }
+
+    document.getElementById("joinWaitlistBtn")?.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const btn = ev.currentTarget;
+        if (btn) btn.disabled = true;
+        setWaitlistStatus("Submitting waitlist request...", "muted");
+        try {
+            const d = await postWaitlist("{% url 'join_waitlist' %}", { event_id: {{ event.id }} });
+            setWaitlistStatus(d.message || "", d.status === "ok" ? "success" : "warning");
+            if (d.status === "ok" || d.pay_url) {
+                if (d.pay_url) window.location.href = d.pay_url;
+                else setTimeout(() => window.location.reload(), 700);
+            }
+        } catch (_) {
+            setWaitlistStatus("Could not reach server. Check connection and retry.", "error");
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    });
+
+    document.getElementById("leaveWaitlistBtn")?.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const btn = ev.currentTarget;
+        if (btn) btn.disabled = true;
+        setWaitlistStatus("Updating waitlist status...", "muted");
+        try {
+            const d = await postWaitlist("{% url 'leave_waitlist' %}", { event_id: {{ event.id }} });
+            setWaitlistStatus(d.message || "", d.status === "ok" ? "success" : "warning");
+            if (d.status === "ok") setTimeout(() => window.location.reload(), 700);
+        } catch (_) {
+            setWaitlistStatus("Could not reach server. Check connection and retry.", "error");
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    });
+    {% endif %}
 </script>
 
 {% endblock %}

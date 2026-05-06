@@ -115,6 +115,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Email (console backend for local demos; set SMTP in production)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "tickets@eventdapp.local"
+
+# Used in waitlist emails as absolute link prefix (adjust for your runserver host/port)
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://127.0.0.1:9000")
+
 
 # Authentication redirects
 

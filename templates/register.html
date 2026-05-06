@@ -92,6 +92,11 @@
         <input type="password" name="confirm_password" class="form-control auth-input" placeholder="Confirm Password" required>
       </div>
 
+      <div class="col-12">
+        <input type="text" name="referral_code" class="form-control auth-input" placeholder="Friend's referral code (optional)" value="{{ prefill_referral|default:'' }}" maxlength="40" autocomplete="off">
+        <small class="text-secondary">Refer a friend: both can receive 10% off eligible ticket purchases (friend on first buy; you as a one-time reward).</small>
+      </div>
+
     </div>
 
     <div class="mt-2 mb-2">

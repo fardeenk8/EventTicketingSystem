@@ -49,6 +49,16 @@ See also **`FEATURES_AND_PROGRESS.md`** for a phased checklist.
 
 ---
 
+## Latest updates (current iteration)
+
+- **Promo code reliability (case-insensitive matching)** — Promo lookup now accepts `promo20` / `PROMO20` style variations, and promo redemption/usage counters update correctly when promo is the winning discount.
+- **Referral credit lifecycle validated** — First purchase by a referred user grants a one-time credit to the referrer; credit is automatically consumed on a later eligible purchase.
+- **Smart waitlist UX hardening** — Sold-out event waitlist actions now show clear status feedback and handle request/response errors gracefully.
+- **My Tickets ownership fallback** — Ticket listing now includes records by `owner_user` (with wallet fallback), preventing false “no tickets” states when wallet values drift.
+- **Automated regression tests added** — A focused Django test set covers promo redemption, referral credit grant/consume flow, sold-out waitlist join, and My Tickets ownership fallback.
+
+---
+
 ## Tech stack
 
 | Layer | Technologies |
@@ -159,6 +169,33 @@ If port `8000` is busy (e.g. Docker), use `9000` or another free port. Ganache m
 2. Users connect MetaMask and buy tickets (ETH to admin); tickets attach to their wallet in the app.  
 3. Users can list resale, bid in auctions, download PDF/QR, and view transactions.  
 4. Admin scans QR for entry and processes refunds; analytics and sales PDFs summarize activity.
+
+---
+
+## Automated tests
+
+Run the focused regression suite for core user flows:
+
+```bash
+python manage.py test Users.tests
+```
+
+Current coverage in this suite:
+- promo redemption + promo usage count
+- referral credit creation and consumption
+- waitlist join for sold-out inventory
+- My Tickets visibility by user ownership
+
+---
+
+## Known limitations / dev notes
+
+- **Ganache is required at startup** — The app initializes Web3 and contract wiring during import, so Django commands (`runserver`, `test`, some management commands) require Ganache at `http://127.0.0.1:7545`.
+- **Contract deployment is environment-local** — `TicketNFT.json` stores the deployed address for the current local chain; if Ganache restarts with fresh state, re-deploy and update this file.
+- **MetaMask network must match local chain** — Use the Ganache RPC and correct chain ID (commonly `1337`/`5777` depending on setup), otherwise checkout/network checks fail.
+- **Admin wallet private key is mandatory** — `.env` must contain `PRIVATE_KEY` for contract deployment, minting transactions, and refund payouts.
+- **Single-node local assumption** — Current defaults target local development only (no production key management, no multi-network config, no hosted RPC failover).
+- **Blockchain + DB dual state** — Ownership/payment data touches both chain and Django DB; interrupted flows can create temporary mismatches, so admin reconciliation checks are recommended during testing.
 
 ---
 

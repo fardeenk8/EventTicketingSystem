@@ -1,0 +1,17 @@
+{% extends 'user/userbase.html' %}
+{% block title %}Waitlist offer{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="dark-card shadow-lg p-4 p-md-5 mx-auto" style="max-width: 560px;">
+    <h2 class="fw-bold mb-3">Offer unavailable</h2>
+    <p class="text-secondary mb-0">
+      This waitlist payment link is no longer valid. The {{ minutes }}-minute window may have ended,
+      or the ticket was reassigned.{% if event %} For <strong>{{ event.title }}</strong>, you can return to the event page
+      to join the waitlist again if seats open up.{% endif %}
+    </p>
+    {% if event %}
+    <a class="btn btn-primary mt-4" href="{% url 'event_detail' event.id %}">Back to event</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

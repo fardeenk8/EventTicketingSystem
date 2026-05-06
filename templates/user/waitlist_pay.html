@@ -1,0 +1,120 @@
+{% extends 'user/userbase.html' %}
+{% block title %}Waitlist checkout{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="dark-card shadow-lg p-4 p-lg-5">
+    <h2 class="fw-bold mb-2">Your ticket is reserved</h2>
+    <p class="text-secondary mb-4">
+      Complete payment within <strong id="countdownLabel">{{ minutes }}:00</strong> for
+      <strong>{{ event.title }}</strong> (token #{{ ticket.token_id }}).
+    </p>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="stat-label">Snapshot price (per ticket)</div>
+        <div class="fs-5 fw-bold">{{ snapshot_unit_eth|floatformat:6 }} ETH</div>
+      </div>
+      <div class="col-md-6">
+        <div class="stat-label">Your total (after discounts)</div>
+        <div class="fs-5 fw-bold"><span id="wlTotal">{{ total_eth|floatformat:6 }}</span> ETH</div>
+        <small class="text-secondary">Auto discount: {{ discount_percent|floatformat:0 }}%</small>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="fw-bold">Promo code (optional)</label>
+      <input type="text" id="wlPromo" class="form-control" placeholder="SAVE10" autocomplete="off">
+    </div>
+
+    <div id="wlStatus" class="transaction-message mb-3"></div>
+
+    <button type="button" id="wlPayBtn" class="btn btn-primary btn-lg px-4">
+      <i class="fas fa-wallet me-1"></i> Pay with MetaMask
+    </button>
+    <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-secondary ms-2">Event page</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<script>
+  const OFFER_TOKEN = "{{ offer.token }}";
+  const ADMIN_ADDRESS = "{{ ADMIN_ADDRESS }}";
+  const EXPIRES_MS = new Date("{{ expires_at_iso }}").getTime();
+
+  function wlShow(type, html) {
+    const el = document.getElementById("wlStatus");
+    el.className = "transaction-message show " + type;
+    el.innerHTML = html;
+  }
+
+  async function wlRefreshQuote() {
+    const promo = (document.getElementById("wlPromo").value || "").trim();
+    const res = await fetch("{% url 'waitlist_checkout_quote' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}",
+      },
+      body: JSON.stringify({ token: OFFER_TOKEN, promo_code: promo }),
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      document.getElementById("wlTotal").textContent = parseFloat(data.total_eth).toFixed(6);
+      window._wlQuote = data;
+    }
+  }
+
+  document.getElementById("wlPromo").addEventListener("change", () => { wlRefreshQuote().catch(() => {}); });
+
+  function tickCountdown() {
+    const left = Math.max(0, EXPIRES_MS - Date.now());
+    const m = Math.floor(left / 60000);
+    const s = Math.floor((left % 60000) / 1000);
+    document.getElementById("countdownLabel").textContent = m + ":" + String(s).padStart(2, "0");
+    if (left <= 0) {
+      wlShow("warning", "<i class='fas fa-clock me-1'></i> Window expired. Refresh the page.");
+      document.getElementById("wlPayBtn").disabled = true;
+    }
+  }
+  setInterval(tickCountdown, 1000);
+  tickCountdown();
+
+  document.getElementById("wlPayBtn").addEventListener("click", async () => {
+    wlShow("info", "<i class='fas fa-spinner fa-spin me-1'></i> Preparing MetaMask…");
+    await wlRefreshQuote();
+    if (!window._wlQuote) {
+      wlShow("error", "Could not load quote.");
+      return;
+    }
+    if (!window.ethereum) {
+      wlShow("error", "MetaMask not found.");
+      return;
+    }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const totalWei = ethers.parseEther(String(window._wlQuote.total_eth));
+    const tx = await signer.sendTransaction({ to: ADMIN_ADDRESS, value: totalWei });
+    wlShow("info", "Waiting for confirmation…");
+    const receipt = await tx.wait();
+    const promo = (document.getElementById("wlPromo").value || "").trim();
+    const res = await fetch("{% url 'buy_waitlist_ticket' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}",
+      },
+      body: JSON.stringify({ token: OFFER_TOKEN, tx_hash: receipt.hash, promo_code: promo }),
+    });
+    const out = await res.json();
+    if (out.status === "success") {
+      wlShow("success", "Ticket assigned! Redirecting…");
+      setTimeout(() => { window.location.href = "{% url 'my_tickets' %}"; }, 1500);
+    } else {
+      wlShow("error", (out.message || "Assignment failed") + "");
+    }
+  });
+
+  wlRefreshQuote().catch(() => {});
+</script>
+{% endblock %}
