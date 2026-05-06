@@ -1,10 +1,35 @@
+import uuid
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Q
+from django.views.decorators.http import require_POST
 from smartcontract.blockchain_utils import contract
 from Admins.models import Event, Ticket
-from Users.models import TicketPurchase, ResaleTicket, RefundRequest, Auction, Bid
+from Users.models import (
+    TicketPurchase,
+    ResaleTicket,
+    RefundRequest,
+    Auction,
+    Bid,
+    EventWaitlist,
+    WaitlistOffer,
+)
+from Users.service_pricing import (
+    quote_primary_purchase,
+    record_promo_redemption_if_eligible,
+    consume_referral_credit_if_used,
+    grant_referrer_reward,
+    resolve_discount_percent,
+)
+from Users.service_waitlist import (
+    available_tickets_queryset,
+    expire_stale_waitlist_offers,
+    WAITLIST_PAYMENT_MINUTES,
+)
 
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 from smartcontract.blockchain_utils import ADMIN_ADDRESS
@@ -38,12 +63,16 @@ def user_wallet(request):
     )
 
     upcoming_events = Event.objects.all().order_by('date')[:4]
+    referral_code = ""
+    if hasattr(user, "profile"):
+        referral_code = (user.profile.referral_code or "").strip()
 
     return render(request, 'User/user_wallet.html', {
         'user': user,
         'user_wallet': user_wallet,
         'my_tickets_count': my_tickets_count,
         'upcoming_events': upcoming_events,
+        'referral_code': referral_code,
     })
 
 @login_required
@@ -80,7 +109,36 @@ def browse_events(request):
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
-    available = Ticket.objects.filter(event=event, owner_wallet="").count()
+    expire_stale_waitlist_offers()
+    available = available_tickets_queryset(event).count()
+
+    waitlist_status = None
+    waitlist_position = None
+    waitlist_pay_path = None
+    if request.user.is_authenticated:
+        wl = EventWaitlist.objects.filter(user=request.user, event=event).first()
+        if wl:
+            waitlist_status = wl.status
+            if wl.status == EventWaitlist.STATUS_WAITING:
+                waitlist_position = EventWaitlist.objects.filter(
+                    event=event,
+                    status=EventWaitlist.STATUS_WAITING,
+                    joined_at__lte=wl.joined_at,
+                ).count()
+            if wl.status == EventWaitlist.STATUS_OFFERED:
+                offer = (
+                    WaitlistOffer.objects.filter(
+                        entry=wl,
+                        fulfilled_at__isnull=True,
+                        expired_at__isnull=True,
+                        expires_at__gte=timezone.now(),
+                    )
+                    .order_by("-created_at")
+                    .first()
+                )
+                if offer:
+                    waitlist_pay_path = f"/Users/waitlist/pay/{offer.token}/"
+
     contract_address = ""
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -94,8 +152,13 @@ def event_detail(request, event_id):
     return render(request, "User/event_detail.html", {
         "event": event,
         "remaining": available,
+        "sold_out": available == 0,
         "ADMIN_ADDRESS": ADMIN_ADDRESS,
-        "contract_address": contract_address
+        "contract_address": contract_address,
+        "waitlist_status": waitlist_status,
+        "waitlist_position": waitlist_position,
+        "waitlist_pay_path": waitlist_pay_path,
+        "checkout_quote_enabled": request.user.is_authenticated,
     })
 
 
@@ -147,6 +210,7 @@ def buy_ticket(request, event_id):
 
     quantity = int(data.get("quantity", 1))
     tx_hash = data.get("tx_hash")
+    promo_code = (data.get("promo_code") or "").strip()
 
     user_wallet = request.user.profile.wallet
     if not user_wallet:
@@ -155,7 +219,9 @@ def buy_ticket(request, event_id):
             "message": "Please connect your wallet first!"
         })
 
-    available = Ticket.objects.filter(event=event, owner_wallet="").count()
+    expire_stale_waitlist_offers()
+    qs = available_tickets_queryset(event)
+    available = qs.count()
 
     if quantity > available:
         return JsonResponse({
@@ -163,25 +229,42 @@ def buy_ticket(request, event_id):
             "message": f"Only {available} tickets are available!"
         })
 
-    tickets_to_assign = list(
-        Ticket.objects.filter(event=event, owner_wallet="")[:quantity]
-    )
+    quote = quote_primary_purchase(request.user, event, quantity, promo_code)
+    discount_pct, promo_obj = resolve_discount_percent(request.user, event, promo_code)
+    is_first_purchase = not TicketPurchase.objects.filter(user=request.user).exists()
+
+    tickets_to_assign = list(qs[:quantity])
 
     assigned_token_ids = []
 
-    for t in tickets_to_assign:
-        t.owner_user = request.user
-        t.owner_wallet = user_wallet
-        t.save()
-        assigned_token_ids.append(t.token_id)
+    with transaction.atomic():
+        for t in tickets_to_assign:
+            locked = Ticket.objects.select_for_update().get(pk=t.pk)
+            if locked.owner_wallet:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Inventory changed — fewer tickets available. Refresh and try again.",
+                })
+            locked.owner_user = request.user
+            locked.owner_wallet = user_wallet
+            locked.save()
+            assigned_token_ids.append(locked.token_id)
 
-    TicketPurchase.objects.create(
-        user=request.user,
-        event=event,
-        quantity=quantity,
-        total_eth=event.price * quantity,
-        tx_hash=tx_hash
-    )
+        TicketPurchase.objects.create(
+            user=request.user,
+            event=event,
+            quantity=quantity,
+            total_eth=quote["total_eth"],
+            tx_hash=tx_hash or "",
+            promo_code_used=(promo_obj.code if promo_obj else ""),
+            discount_percent_applied=discount_pct,
+        )
+        record_promo_redemption_if_eligible(
+            request.user, event, promo_code, promo_obj, discount_pct
+        )
+        consume_referral_credit_if_used(request.user, event, promo_code, discount_pct)
+        if is_first_purchase:
+            grant_referrer_reward(request.user)
 
     return JsonResponse({
         "status": "success",
@@ -189,11 +272,317 @@ def buy_ticket(request, event_id):
         "tokens": assigned_token_ids
     })
 
+
+@login_required
+@csrf_exempt
+@require_POST
+def checkout_quote(request):
+    """JSON quote for primary checkout (MetaMask amount + discounts)."""
+    try:
+        data = json.loads(request.body)
+        event_id = int(data.get("event_id"))
+        quantity = max(1, int(data.get("quantity", 1)))
+        promo_code = (data.get("promo_code") or "").strip()
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"status": "error", "message": "Invalid payload."}, status=400)
+
+    event = get_object_or_404(Event, id=event_id)
+    expire_stale_waitlist_offers()
+    avail = available_tickets_queryset(event).count()
+    quote = quote_primary_purchase(request.user, event, quantity, promo_code)
+    discount_pct, _ = resolve_discount_percent(request.user, event, promo_code)
+
+    return JsonResponse({
+        "status": "success",
+        "available": avail,
+        "can_buy": avail >= quantity,
+        "unit_eth": quote["unit_eth"],
+        "total_eth": quote["total_eth"],
+        "discount_percent": discount_pct,
+        "promo_matched": quote["promo_matched"],
+    })
+
+
+@login_required
+@csrf_exempt
+@require_POST
+def join_waitlist(request):
+    try:
+        data = json.loads(request.body)
+        event_id = int(data.get("event_id"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"status": "error", "message": "Invalid payload."}, status=400)
+
+    event = get_object_or_404(Event, id=event_id)
+    expire_stale_waitlist_offers()
+
+    if available_tickets_queryset(event).count() > 0:
+        return JsonResponse(
+            {"status": "error", "message": "Tickets are still available — purchase from the event page."},
+            status=400,
+        )
+
+    entry = EventWaitlist.objects.filter(user=request.user, event=event).first()
+    if entry:
+        if entry.status == EventWaitlist.STATUS_WAITING:
+            pos = EventWaitlist.objects.filter(
+                event=event,
+                status=EventWaitlist.STATUS_WAITING,
+                joined_at__lte=entry.joined_at,
+            ).count()
+            return JsonResponse(
+                {"status": "ok", "message": "You are already on the waitlist.", "position": pos}
+            )
+        if entry.status == EventWaitlist.STATUS_FULFILLED:
+            return JsonResponse(
+                {"status": "error", "message": "You already completed a waitlist purchase for this event."},
+                status=400,
+            )
+        if entry.status == EventWaitlist.STATUS_OFFERED:
+            offer = (
+                WaitlistOffer.objects.filter(
+                    entry=entry,
+                    fulfilled_at__isnull=True,
+                    expired_at__isnull=True,
+                    expires_at__gte=timezone.now(),
+                )
+                .order_by("-created_at")
+                .first()
+            )
+            if offer:
+                return JsonResponse(
+                    {
+                        "status": "ok",
+                        "message": "You have an active payment window.",
+                        "pay_url": f"/Users/waitlist/pay/{offer.token}/",
+                    }
+                )
+            entry.delete()
+            EventWaitlist.objects.create(
+                user=request.user,
+                event=event,
+                status=EventWaitlist.STATUS_WAITING,
+            )
+            pos = EventWaitlist.objects.filter(event=event, status=EventWaitlist.STATUS_WAITING).count()
+            return JsonResponse({"status": "ok", "message": "Re-joined the waitlist.", "position": pos})
+        if entry.status in (EventWaitlist.STATUS_MISSED, EventWaitlist.STATUS_CANCELLED):
+            entry.delete()
+
+    EventWaitlist.objects.create(
+        user=request.user,
+        event=event,
+        status=EventWaitlist.STATUS_WAITING,
+    )
+    pos = EventWaitlist.objects.filter(event=event, status=EventWaitlist.STATUS_WAITING).count()
+    return JsonResponse({"status": "ok", "message": "Joined the waitlist.", "position": pos})
+
+
+@login_required
+@csrf_exempt
+@require_POST
+def leave_waitlist(request):
+    try:
+        data = json.loads(request.body)
+        event_id = int(data.get("event_id"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"status": "error", "message": "Invalid payload."}, status=400)
+
+    event = get_object_or_404(Event, id=event_id)
+    updated = EventWaitlist.objects.filter(
+        user=request.user,
+        event=event,
+        status=EventWaitlist.STATUS_WAITING,
+    ).update(status=EventWaitlist.STATUS_CANCELLED)
+    if updated:
+        return JsonResponse({"status": "ok", "message": "Removed from waitlist."})
+    return JsonResponse({"status": "error", "message": "Not on waitlist (or you have an active offer)."}, status=400)
+
+
+@login_required
+def waitlist_pay_page(request, token):
+    expire_stale_waitlist_offers()
+    offer = get_object_or_404(WaitlistOffer.objects.select_related("ticket", "ticket__event", "entry"), token=token)
+
+    if offer.entry.user_id != request.user.id:
+        return HttpResponseForbidden("This waitlist link belongs to another account.")
+
+    now = timezone.now()
+    if offer.fulfilled_at or offer.expired_at or offer.expires_at < now:
+        return render(
+            request,
+            "User/waitlist_expired.html",
+            {"event": offer.ticket.event, "minutes": WAITLIST_PAYMENT_MINUTES},
+        )
+
+    if offer.ticket.owner_wallet:
+        return render(
+            request,
+            "User/waitlist_expired.html",
+            {"event": offer.ticket.event, "minutes": WAITLIST_PAYMENT_MINUTES},
+        )
+
+    event = offer.ticket.event
+    discount_pct, _ = resolve_discount_percent(request.user, event, "")
+
+    return render(
+        request,
+        "User/waitlist_pay.html",
+        {
+            "offer": offer,
+            "event": event,
+            "ticket": offer.ticket,
+            "ADMIN_ADDRESS": ADMIN_ADDRESS,
+            "snapshot_unit_eth": offer.unit_price_eth,
+            "discount_percent": discount_pct,
+            "total_eth": round(offer.unit_price_eth * (1.0 - discount_pct / 100.0), 8),
+            "minutes": WAITLIST_PAYMENT_MINUTES,
+            "expires_at_iso": offer.expires_at.isoformat(),
+        },
+    )
+
+
+def _read_contract_address():
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ticket_json_path = os.path.join(base_dir, "smartcontract", "TicketNFT.json")
+        with open(ticket_json_path, "r") as f:
+            return (json.load(f).get("address") or "").strip()
+    except Exception:
+        return ""
+
+
+@login_required
+@csrf_exempt
+@require_POST
+def waitlist_checkout_quote(request):
+    """Quote for waitlist payment window (uses snapshot unit price from the offer)."""
+    try:
+        data = json.loads(request.body)
+        token = uuid.UUID(str(data.get("token")))
+        promo_code = (data.get("promo_code") or "").strip()
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"status": "error", "message": "Invalid payload."}, status=400)
+
+    offer = get_object_or_404(
+        WaitlistOffer.objects.select_related("ticket", "ticket__event", "entry"),
+        token=token,
+    )
+    if offer.entry.user_id != request.user.id:
+        return JsonResponse({"status": "error", "message": "Forbidden."}, status=403)
+
+    expire_stale_waitlist_offers()
+    offer.refresh_from_db()
+    now = timezone.now()
+    if offer.fulfilled_at or offer.expired_at or offer.expires_at < now:
+        return JsonResponse({"status": "error", "message": "Offer expired."}, status=400)
+
+    event = offer.ticket.event
+    discount_pct, _ = resolve_discount_percent(request.user, event, promo_code)
+    unit = float(offer.unit_price_eth)
+    total = round(unit * (1.0 - discount_pct / 100.0), 8)
+
+    return JsonResponse(
+        {
+            "status": "success",
+            "unit_eth": unit,
+            "total_eth": total,
+            "discount_percent": discount_pct,
+            "expires_at": offer.expires_at.isoformat(),
+        }
+    )
+
+
+@login_required
+@csrf_exempt
+@require_POST
+def buy_waitlist_ticket(request):
+    try:
+        data = json.loads(request.body)
+        token = uuid.UUID(str(data.get("token")))
+        tx_hash = data.get("tx_hash") or ""
+        promo_code = (data.get("promo_code") or "").strip()
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"status": "error", "message": "Invalid payload."}, status=400)
+
+    user_wallet = request.user.profile.wallet
+    if not user_wallet:
+        return JsonResponse({"status": "error", "message": "Please connect your wallet first!"})
+
+    expire_stale_waitlist_offers()
+
+    with transaction.atomic():
+        offer = (
+            WaitlistOffer.objects.select_for_update()
+            .select_related("ticket", "ticket__event", "entry")
+            .filter(token=token)
+            .first()
+        )
+        if not offer:
+            return JsonResponse({"status": "error", "message": "Offer not found."}, status=404)
+
+        if offer.entry.user_id != request.user.id:
+            return JsonResponse({"status": "error", "message": "Forbidden."}, status=403)
+
+        now = timezone.now()
+        if offer.fulfilled_at or offer.expired_at or offer.expires_at < now:
+            return JsonResponse({"status": "error", "message": "This payment window has expired."}, status=400)
+
+        ticket = Ticket.objects.select_for_update().get(pk=offer.ticket_id)
+        if ticket.owner_wallet:
+            return JsonResponse({"status": "error", "message": "This ticket is no longer available."}, status=400)
+
+        event = ticket.event
+        discount_pct, promo_obj = resolve_discount_percent(request.user, event, promo_code)
+        total_eth = round(offer.unit_price_eth * (1.0 - discount_pct / 100.0), 8)
+        is_first_purchase = not TicketPurchase.objects.filter(user=request.user).exists()
+
+        ticket.owner_user = request.user
+        ticket.owner_wallet = user_wallet
+        ticket.save()
+
+        offer.fulfilled_at = now
+        offer.save(update_fields=["fulfilled_at"])
+
+        offer.entry.status = EventWaitlist.STATUS_FULFILLED
+        offer.entry.save(update_fields=["status"])
+
+        TicketPurchase.objects.create(
+            user=request.user,
+            event=event,
+            quantity=1,
+            total_eth=total_eth,
+            tx_hash=tx_hash,
+            promo_code_used=(promo_obj.code if promo_obj else ""),
+            discount_percent_applied=discount_pct,
+        )
+        record_promo_redemption_if_eligible(
+            request.user, event, promo_code, promo_obj, discount_pct
+        )
+        consume_referral_credit_if_used(request.user, event, promo_code, discount_pct)
+        if is_first_purchase:
+            grant_referrer_reward(request.user)
+
+    return JsonResponse(
+        {
+            "status": "success",
+            "message": "Ticket purchased successfully!",
+            "tokens": [ticket.token_id],
+        }
+    )
+
 @login_required
 def my_tickets(request):
     user_wallet = request.user.profile.wallet
 
-    tickets = Ticket.objects.filter(owner_wallet=user_wallet)
+    # Prefer explicit user ownership; keep wallet match for older records.
+    tickets = (
+        Ticket.objects.filter(
+            Q(owner_user=request.user) |
+            Q(owner_wallet__iexact=user_wallet)
+        )
+        .distinct()
+        .order_by("-id")
+    )
 
     return render(request, "User/my_tickets.html", {
         "tickets": tickets

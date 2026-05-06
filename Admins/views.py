@@ -6,6 +6,7 @@ from smartcontract.blockchain_utils import mint_ticket, ADMIN_ADDRESS, send_eth_
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from Users.models import Profile, TicketPurchase, RefundRequest
+from Users.service_waitlist import offer_ticket_to_waitlist
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -440,8 +441,10 @@ def approve_refund(request, refund_id):
         # Ticket becomes available again
         ticket = refund.ticket
         ticket.owner_user = None
-        ticket.owner_wallet = ""  
+        ticket.owner_wallet = ""
         ticket.save()
+
+        offer_ticket_to_waitlist(ticket)
 
         messages.success(request, f"Refund successful! TX: {tx_hash}")
 
